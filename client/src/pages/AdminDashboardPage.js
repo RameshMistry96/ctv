@@ -106,12 +106,12 @@ export default function AdminDashboardPage() {
         </div>
 
         <NavGroup title="MAIN">
-          <NavItem active icon="⌂" text="Dashboard" to="/admin/dashboard" />
+          <NavItem active icon="⌂" text="Dashboard" to="/ctv-admin/dashboard" />
         </NavGroup>
 
         <NavGroup title="ROUTE MANAGEMENT">
-          <NavItem icon="☷" text="Admin Routes" to="/admin" />
-          <NavItem icon="▣" text="Weekly Templates" to="/templates" />
+          <NavItem icon="☷" text="Admin Routes" to="/ctv-admin" />
+          <NavItem icon="▣" text="Weekly Templates" to="/ctv-admin/templates" />
         </NavGroup>
 
         <NavGroup title="SYSTEM">
@@ -222,7 +222,7 @@ export default function AdminDashboardPage() {
                 <span style={{ ...tab, color: "#7c3aed" }}>Enroute ({counts["ENROUTE"] || 0})</span>
                 <span style={{ ...tab, color: "#dc2626" }}>Cancelled ({counts["CANCELLED"] || 0})</span>
               </div>
-              <Link to="/admin" style={addBtn}>＋ Add New Route</Link>
+              <Link to="/ctv-admin" style={addBtn}>＋ Add New Route</Link>
             </div>
 
             <div style={table}>
@@ -247,14 +247,14 @@ export default function AdminDashboardPage() {
                   </span>
                   <span>{r.notes || "--"}</span>
                   <span style={actions}>
-                    <Link to="/admin" style={actionBtn}>✎</Link>
-                    <Link to="/ctv-board" style={eyeBtn}>◉</Link>
+                    <Link to="/ctv-admin" style={actionBtn}>✎</Link>
+                    <Link to="/tv" style={eyeBtn}>◉</Link>
                   </span>
                 </div>
               ))}
             </div>
 
-            <Link to="/admin" style={bottomLink}>View all routes →</Link>
+            <Link to="/ctv-admin" style={bottomLink}>View all routes →</Link>
           </div>
         </section>
       </main>
