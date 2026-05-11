@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
     if (user === "admin" && pass === "admin123") {
       sessionStorage.setItem("admin_auth", "true");
       sessionStorage.setItem("admin_login_time", Date.now().toString());
-      navigate("/admin/dashboard");
+      navigate("/ctv-admin/dashboard");
     } else {
       alert("Invalid credentials");
     }
