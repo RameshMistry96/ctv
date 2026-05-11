@@ -6,7 +6,7 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
-    navigate("/admin/login");
+    navigate("/ctv-admin/login");
   };
 
   const menu = [

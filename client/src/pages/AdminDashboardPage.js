@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
 
   const handleLogout = () => {
   sessionStorage.removeItem("admin_auth");
-  navigate("/admin/login");
+  navigate("/ctv-admin/login");
   };
 
   const loadRoutes = async () => {
@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
   if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
     sessionStorage.removeItem("admin_auth");
     sessionStorage.removeItem("admin_login_time");
-    navigate("/admin/login");
+    navigate("/ctv-admin/login");
     return;
   }
     loadRoutes();

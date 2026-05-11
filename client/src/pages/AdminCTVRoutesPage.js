@@ -49,7 +49,7 @@ useEffect(() => {
     if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
     sessionStorage.removeItem("admin_auth");
     sessionStorage.removeItem("admin_login_time");
-    navigate("/admin/login");
+    navigate("/ctv-admin/login");
     return;
     }
 
