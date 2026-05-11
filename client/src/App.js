@@ -5,7 +5,6 @@ import AdminCTVRoutesPage from "./pages/AdminCTVRoutesPage";
 import AdminCTVTemplatePage from "./pages/AdminCTVTemplatePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 
-// ✅ NEW IMPORTS (create these next)
 import TVLoginPage from "./pages/TVLoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 
@@ -14,22 +13,22 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Default */}
-        <Route path="/" element={<Navigate to="/ctv-board" replace />} />
+        <Route path="/" element={<Navigate to="/tv" replace />} />
 
-        {/* ✅ LOGIN ROUTES */}
+        {/* LOGIN */}
         <Route path="/tv-login" element={<TVLoginPage />} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/ctv-admin/login" element={<AdminLoginPage />} />
 
         {/* TV */}
-        <Route path="/ctv-board" element={<CTVBoardPage />} />
+        <Route path="/tv" element={<CTVBoardPage />} />
 
         {/* ADMIN */}
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-        <Route path="/admin" element={<AdminCTVRoutesPage />} />
-        <Route path="/templates" element={<AdminCTVTemplatePage />} />
+        <Route path="/ctv-admin" element={<AdminCTVRoutesPage />} />
+        <Route path="/ctv-admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/ctv-admin/templates" element={<AdminCTVTemplatePage />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/ctv-board" replace />} />
+        <Route path="*" element={<Navigate to="/tv" replace />} />
       </Routes>
     </BrowserRouter>
   );
