@@ -115,12 +115,12 @@ export default function AdminDashboardPage() {
         </NavGroup>
 
         <NavGroup title="SYSTEM">
-          <NavItem icon="⚙" text="Settings" to="/admin/dashboard" />
-          <NavItem icon="♙" text="Users" to="/admin/dashboard" />
+          <NavItem icon="⚙" text="Settings" to="/ctv-admin/dashboard" />
+          <NavItem icon="♙" text="Users" to="/ctv-admin/dashboard" />
         </NavGroup>
 
         <NavGroup title="OTHER">
-          <NavItem icon="▤" text="Activity Logs" to="/admin/dashboard" />
+          <NavItem icon="▤" text="Activity Logs" to="/ctv-admin/dashboard" />
           <button onClick={handleLogout} style={logoutNavItem}>
             <span style={navIcon}>↪</span>
             Logout
