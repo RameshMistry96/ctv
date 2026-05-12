@@ -10,10 +10,10 @@ export default function AdminLayout({ children }) {
   };
 
   const menu = [
-    { name: "Dashboard", path: "/admin/dashboard", icon: "📊" },
-    { name: "Routes", path: "/admin", icon: "📦" },
-    { name: "Templates", path: "/templates", icon: "🗓" },
-    { name: "TV Board", path: "/ctv-board", icon: "📺" },
+    { name: "Dashboard", path: "/ctv-admin/dashboard", icon: "📊" },
+    { name: "Routes", path: "/ctv-admin", icon: "📦" },
+    { name: "Templates", path: "/ctv-admin/templates", icon: "🗓" },
+    { name: "TV Board", path: "/tv", icon: "📺" },
   ];
 
   return (
