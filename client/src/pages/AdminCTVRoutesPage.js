@@ -21,7 +21,10 @@ function AdminCTVRoutesPage() {
   const [modalRoute, setModalRoute] = useState(null);
   const [modalForm, setModalForm] = useState({ delay_minutes: "", notes: "" });
 
-    const [form, setForm] = useState({
+  // ✅ Mobile add form popup
+  const [showMobileAddForm, setShowMobileAddForm] = useState(false);
+
+  const [form, setForm] = useState({
     route_number: "",
     destination: "",
     scheduled_departure_time: "",
@@ -29,39 +32,40 @@ function AdminCTVRoutesPage() {
     status: "NOT STARTED",
     delay_minutes: "",
     notes: "",
-    });
+  });
 
-    const loadRoutes = async () => {
+  const loadRoutes = async () => {
     try {
-        const res = await fetch(`${API_BASE}/api/routes`);
-        const data = await res.json();
-        setRoutes(data);
+      const res = await fetch(`${API_BASE}/api/routes`);
+      const data = await res.json();
+      setRoutes(data);
     } catch (err) {
-        console.error("Failed to load admin routes:", err);
+      console.error("Failed to load admin routes:", err);
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     const isAuth = sessionStorage.getItem("admin_auth");
     const loginTime = Number(sessionStorage.getItem("admin_login_time"));
     const eightHours = 8 * 60 * 60 * 1000;
 
     if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
-    sessionStorage.removeItem("admin_auth");
-    sessionStorage.removeItem("admin_login_time");
-    navigate("/ctv-admin/login");
-    return;
+      sessionStorage.removeItem("admin_auth");
+      sessionStorage.removeItem("admin_login_time");
+      navigate("/ctv-admin/login");
+      return;
     }
 
     loadRoutes();
-
-    }, [navigate]);
+  }, [navigate]);
 
   const handleChange = (e) => {
     const updated = { ...form, [e.target.name]: e.target.value };
+
     if (e.target.name === "delay_minutes" && Number(e.target.value) > 0) {
       updated.status = "DELAYED";
     }
+
     setForm(updated);
   };
 
@@ -100,6 +104,7 @@ useEffect(() => {
         notes: "",
       });
 
+      setShowMobileAddForm(false);
       loadRoutes();
     } catch (err) {
       setMessage("Failed to add route");
@@ -126,26 +131,26 @@ useEffect(() => {
     }
   };
 
-const updateStatus = async (id, status) => {
-  try {
-    const res = await fetch(`${API_BASE}/api/routes/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
+  const updateStatus = async (id, status) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/routes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setMessage(data.error || "Failed to update status");
-      return;
+      if (!res.ok) {
+        setMessage(data.error || "Failed to update status");
+        return;
+      }
+
+      loadRoutes();
+    } catch (err) {
+      setMessage("Failed to update route status");
     }
-
-    loadRoutes();
-  } catch (err) {
-    setMessage("Failed to update route status");
-  }
-};
+  };
 
   const openDelayModal = (route) => {
     setModalRoute(route);
@@ -155,238 +160,380 @@ const updateStatus = async (id, status) => {
     });
   };
 
-const saveDelayNotes = async () => {
-  try {
-    const delayNumber = Number(modalForm.delay_minutes) || 0;
+  const saveDelayNotes = async () => {
+    try {
+      const delayNumber = Number(modalForm.delay_minutes) || 0;
 
-    const res = await fetch(`${API_BASE}/api/routes/${modalRoute.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        delay_minutes: delayNumber,
-        notes: modalForm.notes,
-        status: delayNumber > 0 ? "DELAYED" : modalRoute.status,
-      }),
-    });
+      const res = await fetch(`${API_BASE}/api/routes/${modalRoute.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          delay_minutes: delayNumber,
+          notes: modalForm.notes,
+          status: delayNumber > 0 ? "DELAYED" : modalRoute.status,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setMessage(data.error || "Failed to update delay / notes");
-      return;
+      if (!res.ok) {
+        setMessage(data.error || "Failed to update delay / notes");
+        return;
+      }
+
+      setMessage("Delay / note updated");
+      setModalRoute(null);
+      loadRoutes();
+    } catch (err) {
+      setMessage("Failed to save delay / notes");
     }
+  };
 
-    setMessage("Delay / note updated");
-    setModalRoute(null);
-    loadRoutes();
-  } catch (err) {
-    setMessage("Failed to save delay / notes");
-  }
-};
+  const deleteRoute = async (id) => {
+    const ok = window.confirm("Delete this route from today's board?");
+    if (!ok) return;
 
-const deleteRoute = async (id) => {
-  const ok = window.confirm("Delete this route from today's board?");
-  if (!ok) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/routes/${id}`, {
+        method: "DELETE",
+      });
 
-  try {
-    const res = await fetch(`${API_BASE}/api/routes/${id}`, {
-      method: "DELETE",
-    });
+      const data = await res.json();
 
-    const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error || "Failed to delete route");
+        return;
+      }
 
-    if (!res.ok) {
-      setMessage(data.error || "Failed to delete route");
-      return;
+      setMessage("Route deleted");
+      loadRoutes();
+    } catch (err) {
+      setMessage("Failed to delete route");
     }
+  };
 
-    setMessage("Route deleted");
-    loadRoutes();
-  } catch (err) {
-    setMessage("Failed to delete route");
-  }
-};
+  const AddRouteForm = ({ isMobile = false }) => (
+    <div style={isMobile ? mobileFormBoxStyle : panelStyle}>
+      <h2 style={panelTitleStyle}>
+        <span style={smallIconStyle}>🚚</span> Add New Route
+      </h2>
+
+      <form onSubmit={addRoute} style={formStyle}>
+        <label style={labelStyle}>Route Number</label>
+        <input
+          style={inputStyle}
+          name="route_number"
+          value={form.route_number}
+          onChange={handleChange}
+          placeholder="e.g. YF201"
+        />
+
+        <label style={labelStyle}>Destination</label>
+        <input
+          style={inputStyle}
+          name="destination"
+          value={form.destination}
+          onChange={handleChange}
+          placeholder="e.g. YMX"
+        />
+
+        <label style={labelStyle}>Route Type</label>
+        <select
+          style={inputStyle}
+          name="route_type"
+          value={form.route_type}
+          onChange={handleChange}
+        >
+          <option value="OUTBOUND">OUTBOUND - Depart</option>
+          <option value="INBOUND">INBOUND - Arrive</option>
+        </select>
+
+        <label style={labelStyle}>Scheduled Time</label>
+        <input
+          type="time"
+          style={inputStyle}
+          name="scheduled_departure_time"
+          value={form.scheduled_departure_time}
+          onChange={handleChange}
+        />
+
+        <label style={labelStyle}>Initial Status</label>
+        <select
+          style={inputStyle}
+          name="status"
+          value={form.status}
+          onChange={handleChange}
+        >
+          {STATUSES.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+
+        <div style={dividerStyle} />
+
+        <label style={labelStyle}>
+          Delay Time <span style={mutedStyle}>(minutes)</span>
+        </label>
+        <input
+          style={inputStyle}
+          name="delay_minutes"
+          value={form.delay_minutes}
+          onChange={handleChange}
+          placeholder="e.g. 20"
+          type="number"
+          min="0"
+        />
+
+        <label style={labelStyle}>Notes / Comment</label>
+        <textarea
+          style={textAreaStyle}
+          name="notes"
+          value={form.notes}
+          onChange={handleChange}
+          placeholder="Enter any note or comment..."
+        />
+
+        {isMobile ? (
+          <div style={mobileActionRowStyle}>
+            <button
+              style={mobileCancelButtonStyle}
+              type="button"
+              onClick={() => setShowMobileAddForm(false)}
+            >
+              Cancel
+            </button>
+            <button style={mainButtonStyle} type="submit">
+              ⊕ Add Route
+            </button>
+          </div>
+        ) : (
+          <button style={mainButtonStyle} type="submit">
+            ⊕ Add Route
+          </button>
+        )}
+      </form>
+
+      {message && <div style={messageStyle}>{message}</div>}
+    </div>
+  );
 
   return (
     <AdminLayout>
-    <div style={pageStyle}>
-      <div style={shellStyle}>
-        <div style={topBarStyle}>
-          <div style={brandStyle}>
-            <div style={truckIconStyle}>🚚</div>
-            <div>
-              <h1 style={titleStyle}>CTV Admin Control</h1>
-              <p style={subTitleStyle}>Manage today’s routes and live status</p>
+      <style>{mobileCss}</style>
+
+      <div style={pageStyle}>
+        <div style={shellStyle}>
+          <div style={topBarStyle} className="ctv-topbar">
+            <div style={brandStyle}>
+              <div style={truckIconStyle}>
+              <img
+                src="/favicon.ico"
+                alt="CTV"
+                style={{
+                  width: 28,
+                  height: 28,
+                  objectFit: "contain",
+                }}
+              />
             </div>
-          </div>
-
-          <button style={loadButtonStyle} onClick={loadTodaySchedule}>
-            ↻ Load Today’s Schedule
-          </button>
-        </div>
-
-        <div style={gridStyle}>
-          <div style={panelStyle}>
-            <h2 style={panelTitleStyle}>
-              <span style={smallIconStyle}>🚚</span> Add New Route
-            </h2>
-
-            <form onSubmit={addRoute} style={formStyle}>
-              <label style={labelStyle}>Route Number</label>
-              <input style={inputStyle} name="route_number" value={form.route_number} onChange={handleChange} placeholder="e.g. YF201" />
-
-              <label style={labelStyle}>Destination</label>
-              <input style={inputStyle} name="destination" value={form.destination} onChange={handleChange} placeholder="e.g. YMX" />
-
-              <label style={labelStyle}>Route Type</label>
-            <select
-            style={inputStyle}
-            name="route_type"
-            value={form.route_type}
-            onChange={handleChange}
-            >
-            <option value="OUTBOUND">OUTBOUND - Depart</option>
-            <option value="INBOUND">INBOUND - Arrive</option>
-            </select>
-
-            <label style={labelStyle}>Scheduled Time</label>
-            <input
-              type="time"
-              style={inputStyle}
-              name="scheduled_departure_time"
-              value={form.scheduled_departure_time}
-              onChange={handleChange}
-            />
-
-              <label style={labelStyle}>Initial Status</label>
-              <select style={inputStyle} name="status" value={form.status} onChange={handleChange}>
-                {STATUSES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-
-              <div style={dividerStyle} />
-
-              <label style={labelStyle}>Delay Time <span style={mutedStyle}>(minutes)</span></label>
-              <input style={inputStyle} name="delay_minutes" value={form.delay_minutes} onChange={handleChange} placeholder="e.g. 20" type="number" min="0" />
-
-              <label style={labelStyle}>Notes / Comment</label>
-              <textarea style={textAreaStyle} name="notes" value={form.notes} onChange={handleChange} placeholder="Enter any note or comment..." />
-
-              <button style={mainButtonStyle} type="submit">⊕ Add Route</button>
-            </form>
-
-            {message && <div style={messageStyle}>{message}</div>}
-          </div>
-
-          <div style={panelStyle}>
-            <div style={listHeaderStyle}>
-              <h2 style={panelTitleStyle}>
-                <span style={smallIconStyle}>☷</span> Today’s Routes
-              </h2>
-              <span style={countTextStyle}>Total Routes: {routes.length}</span>
+              <div>
+                <h1 style={titleStyle}>CTV Admin Control</h1>
+                <p style={subTitleStyle}>Manage today’s routes and live status</p>
+              </div>
             </div>
 
-            {routes.map((route) => (
-              <div key={route.id} style={routeCardStyle}>
-                <div style={actionTopStyle}>
-                  <button onClick={() => openDelayModal(route)} style={delayTopButtonStyle}>
-                    ✎ Delay / Notes
-                  </button>
-                  <button style={trashButtonStyle} onClick={() => deleteRoute(route.id)}>🗑</button>
-                </div>
+            <button style={loadButtonStyle} onClick={loadTodaySchedule}>
+              ↻ Load Today’s Schedule
+            </button>
+          </div>
 
-                <div style={routeTopStyle}>
-                  <div style={timeBoxStyle}>
-                    <strong>{route.scheduled_departure_time}</strong>
-                    <span>{getTimeLabel(route)}</span>
+          <div style={gridStyle} className="ctv-grid">
+            <div className="ctv-desktop-form">
+              <AddRouteForm />
+            </div>
+
+            <div style={panelStyle}>
+              <div style={listHeaderStyle}>
+                <h2 style={panelTitleStyle}>
+                  <span style={smallIconStyle}>☷</span> Today’s Routes
+                </h2>
+                <span style={countTextStyle}>Total Routes: {routes.length}</span>
+              </div>
+
+              {routes.map((route) => (
+                <div key={route.id} style={routeCardStyle} className="ctv-route-card">
+                  <div style={actionTopStyle} className="ctv-action-top">
+                    <button onClick={() => openDelayModal(route)} style={delayTopButtonStyle}>
+                      ✎ Delay / Notes
+                    </button>
+                    <button style={trashButtonStyle} onClick={() => deleteRoute(route.id)}>
+                      🗑
+                    </button>
                   </div>
 
-                  <div style={{ flex: 1, paddingRight: 170 }}>
-                    <div style={routeTitleStyle}>
-                      {route.route_number}
-                      <span style={arrowStyle}>→</span>
-                      {route.destination}
-                      <span style={{ ...statusBadgeStyle, color: statusColor(route.status), background: statusSoftBg(route.status), borderColor: statusColor(route.status) }}>
-                        {route.status}
-                      </span>
+                  <div style={routeTopStyle} className="ctv-route-top">
+                    <div style={timeBoxStyle} className="ctv-time-box">
+                      <strong>{route.scheduled_departure_time}</strong>
+                      <span>{getTimeLabel(route)}</span>
                     </div>
 
-                    <div style={metaRowStyle}>
-                      <span>⌖ Destination: {route.destination}</span>
-                      <span>◷ {getTimeLabel(route)}: {route.scheduled_departure_time}</span>
-                      <span>Delay: {route.delay_minutes > 0 ? `${route.delay_minutes} min` : "--"}</span>
-                      <span>Note: {route.notes || "--"}</span>
-                    </div>
-
-                    <div style={buttonRowStyle}>
-                      {STATUSES.map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => updateStatus(route.id, status)}
+                    <div style={{ flex: 1, paddingRight: 170 }} className="ctv-route-main">
+                      <div style={routeTitleStyle} className="ctv-route-title">
+                        {route.route_number}
+                        <span style={arrowStyle}>→</span>
+                        {route.destination}
+                        <span
                           style={{
-                            ...statusButtonStyle,
-                            color: statusColor(status),
-                            borderColor: statusColor(status),
-                            background: route.status === status ? statusSoftBg(status) : "white",
+                            ...statusBadgeStyle,
+                            color: statusColor(route.status),
+                            background: statusSoftBg(route.status),
+                            borderColor: statusColor(route.status),
                           }}
                         >
-                          {status}
-                        </button>
-                      ))}
+                          {route.status}
+                        </span>
+                      </div>
+
+                      <div style={metaRowStyle} className="ctv-meta-row">
+                        <span>⌖ Destination: {route.destination}</span>
+                        <span>
+                          ◷ {getTimeLabel(route)}: {route.scheduled_departure_time}
+                        </span>
+                        <span>
+                          Delay:{" "}
+                          {route.delay_minutes > 0
+                            ? `${route.delay_minutes} min`
+                            : "--"}
+                        </span>
+                        <span>Note: {route.notes || "--"}</span>
+                      </div>
+
+                      <div style={buttonRowStyle} className="ctv-status-buttons">
+                        {STATUSES.map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => updateStatus(route.id, status)}
+                            style={{
+                              ...statusButtonStyle,
+                              color: statusColor(status),
+                              borderColor: statusColor(status),
+                              background:
+                                route.status === status
+                                  ? statusSoftBg(status)
+                                  : "white",
+                            }}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="ctv-mobile-status-row">
+                        <label>Status</label>
+                        <select
+                          value={route.status}
+                          onChange={(e) => updateStatus(route.id, e.target.value)}
+                        >
+                          {STATUSES.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
 
-        {modalRoute && (
-          <div style={modalOverlayStyle}>
-            <div style={modalStyle}>
-              <button style={modalCloseStyle} onClick={() => setModalRoute(null)}>×</button>
-
-              <h2 style={modalTitleStyle}>Update Delay & Notes</h2>
-              <p style={modalSubStyle}>{modalRoute.route_number} → {modalRoute.destination}</p>
-
-              <label style={labelStyle}>Delay Minutes</label>
-              <input
-                style={inputStyle}
-                type="number"
-                min="0"
-                value={modalForm.delay_minutes}
-                onChange={(e) => setModalForm({ ...modalForm, delay_minutes: e.target.value })}
-                placeholder="e.g. 20"
-              />
-
-              <div style={quickRowStyle}>
-                {[5, 10, 15, 30, 60].map((m) => (
-                  <button
-                    key={m}
-                    style={quickBtnStyle}
-                    onClick={() => setModalForm({ ...modalForm, delay_minutes: m })}
-                  >
-                    +{m} min
-                  </button>
-                ))}
-              </div>
-
-              <label style={labelStyle}>Notes / Comment</label>
-              <textarea
-                style={textAreaStyle}
-                value={modalForm.notes}
-                onChange={(e) => setModalForm({ ...modalForm, notes: e.target.value })}
-                placeholder="Enter comment..."
-              />
-
-              <div style={modalActionRowStyle}>
-                <button style={cancelButtonStyle} onClick={() => setModalRoute(null)}>Cancel</button>
-                <button style={saveButtonStyle} onClick={saveDelayNotes}>✓ Save Changes</button>
-              </div>
+              {routes.length === 0 && (
+                <div style={emptyStateStyle}>
+                  No routes loaded yet. Tap <b>Load Today’s Schedule</b> or add route manually.
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* ✅ Mobile floating plus button */}
+          {!showMobileAddForm && (
+            <button
+              className="ctv-mobile-add-btn"
+              onClick={() => setShowMobileAddForm(true)}
+            >
+              +
+            </button>
+          )}
+
+          {/* ✅ Mobile Add Route Popup */}
+          {showMobileAddForm && (
+            <div style={mobileOverlayStyle}>
+              <div style={mobileSheetStyle} className="ctv-mobile-sheet-safe">
+                <AddRouteForm isMobile />
+              </div>
+            </div>
+          )}
+
+          {modalRoute && (
+            <div style={modalOverlayStyle}>
+              <div style={modalStyle}>
+                <button style={modalCloseStyle} onClick={() => setModalRoute(null)}>
+                  ×
+                </button>
+
+                <h2 style={modalTitleStyle}>Update Delay & Notes</h2>
+                <p style={modalSubStyle}>
+                  {modalRoute.route_number} → {modalRoute.destination}
+                </p>
+
+                <label style={labelStyle}>Delay Minutes</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  min="0"
+                  value={modalForm.delay_minutes}
+                  onChange={(e) =>
+                    setModalForm({ ...modalForm, delay_minutes: e.target.value })
+                  }
+                  placeholder="e.g. 20"
+                />
+
+                <div style={quickRowStyle}>
+                  {[5, 10, 15, 30, 60].map((m) => (
+                    <button
+                      key={m}
+                      style={quickBtnStyle}
+                      onClick={() =>
+                        setModalForm({ ...modalForm, delay_minutes: m })
+                      }
+                    >
+                      +{m} min
+                    </button>
+                  ))}
+                </div>
+
+                <label style={labelStyle}>Notes / Comment</label>
+                <textarea
+                  style={textAreaStyle}
+                  value={modalForm.notes}
+                  onChange={(e) =>
+                    setModalForm({ ...modalForm, notes: e.target.value })
+                  }
+                  placeholder="Enter comment..."
+                />
+
+                <div style={modalActionRowStyle}>
+                  <button style={cancelButtonStyle} onClick={() => setModalRoute(null)}>
+                    Cancel
+                  </button>
+                  <button style={saveButtonStyle} onClick={saveDelayNotes}>
+                    ✓ Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </AdminLayout>
   );
 }
@@ -399,27 +546,29 @@ const getTimeLabel = (route) => {
   return getRouteType(route) === "INBOUND" ? "Arrive" : "Depart";
 };
 
-const statusColor = (s) => ({
-  "NOT STARTED": "#334155",
-  "ON TIME": "#16a34a",
-  LOADING: "#0b7ed7",
-  DELAYED: "#f97316",
-  ENROUTE: "#7c3aed",
-  ARRIVED: "#0f766e",
-  CANCELLED: "#dc2626",
-  DEPARTED: "#334155",
-}[s] || "#334155");
+const statusColor = (s) =>
+  ({
+    "NOT STARTED": "#334155",
+    "ON TIME": "#16a34a",
+    LOADING: "#0b7ed7",
+    DELAYED: "#f97316",
+    ENROUTE: "#7c3aed",
+    ARRIVED: "#0f766e",
+    CANCELLED: "#dc2626",
+    DEPARTED: "#334155",
+  }[s] || "#334155");
 
-const statusSoftBg = (s) => ({
-  "NOT STARTED": "#f1f5f9",
-  "ON TIME": "#dcfce7",
-  LOADING: "#eff6ff",
-  DELAYED: "#fff7ed",
-  ENROUTE: "#f3e8ff",
-  ARRIVED: "#ccfbf1",
-  CANCELLED: "#fee2e2",
-  DEPARTED: "#e2e8f0",
-}[s] || "#f8fafc");
+const statusSoftBg = (s) =>
+  ({
+    "NOT STARTED": "#f1f5f9",
+    "ON TIME": "#dcfce7",
+    LOADING: "#eff6ff",
+    DELAYED: "#fff7ed",
+    ENROUTE: "#f3e8ff",
+    ARRIVED: "#ccfbf1",
+    CANCELLED: "#fee2e2",
+    DEPARTED: "#e2e8f0",
+  }[s] || "#f8fafc");
 
 const pageStyle = {
   minHeight: "100vh",
@@ -450,18 +599,33 @@ const truckIconStyle = {
   width: 54,
   height: 54,
   borderRadius: 12,
-  background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
-  color: "white",
+  background: "linear-gradient(135deg,#f8fafc,#e2e8f0)",
   display: "grid",
   placeItems: "center",
   fontSize: 25,
-  boxShadow: "0 10px 20px rgba(37,99,235,.25)",
+  boxShadow: "0 8px 18px rgba(15,23,42,.08)",
+  border: "1px solid #e2e8f0",
 };
 
-const titleStyle = { margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: "-.03em" };
-const subTitleStyle = { color: "#64748b", margin: "3px 0 0", fontSize: 14, fontWeight: 600 };
+const titleStyle = {
+  margin: 0,
+  fontSize: 28,
+  fontWeight: 900,
+  letterSpacing: "-.03em",
+};
 
-const gridStyle = { display: "grid", gridTemplateColumns: "390px 1fr", gap: 22 };
+const subTitleStyle = {
+  color: "#64748b",
+  margin: "3px 0 0",
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "390px 1fr",
+  gap: 22,
+};
 
 const panelStyle = {
   background: "white",
@@ -540,7 +704,12 @@ const messageStyle = {
   fontWeight: 800,
 };
 
-const listHeaderStyle = { display: "flex", justifyContent: "space-between", alignItems: "center" };
+const listHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
 const countTextStyle = { color: "#334155", fontSize: 14, fontWeight: 700 };
 
 const routeCardStyle = {
@@ -627,6 +796,15 @@ const statusButtonStyle = {
   fontSize: 12,
 };
 
+const emptyStateStyle = {
+  padding: 24,
+  borderRadius: 14,
+  background: "#f8fafc",
+  border: "1px dashed #cbd5e1",
+  color: "#64748b",
+  fontWeight: 700,
+};
+
 const modalOverlayStyle = {
   position: "fixed",
   inset: 0,
@@ -659,7 +837,13 @@ const modalCloseStyle = {
 
 const modalTitleStyle = { margin: 0, fontSize: 24, fontWeight: 900 };
 const modalSubStyle = { color: "#475569", fontWeight: 900, fontSize: 17 };
-const quickRowStyle = { display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0 14px" };
+
+const quickRowStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  margin: "10px 0 14px",
+};
 
 const quickBtnStyle = {
   border: "1px solid #bfdbfe",
@@ -671,7 +855,12 @@ const quickBtnStyle = {
   cursor: "pointer",
 };
 
-const modalActionRowStyle = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 };
+const modalActionRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 14,
+};
 
 const cancelButtonStyle = {
   padding: 14,
@@ -691,5 +880,243 @@ const saveButtonStyle = {
   fontWeight: 900,
   cursor: "pointer",
 };
+
+/* ✅ Mobile styles */
+const mobileOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(15,23,42,.55)",
+  zIndex: 100,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "18px",
+};
+
+const mobileSheetStyle = {
+  width: "100%",
+  maxWidth: 380,
+  maxHeight: "82vh",
+  overflowY: "auto",
+  background: "#ffffff",
+  borderRadius: 24,
+  padding: "16px 16px 110px",
+  boxShadow: "0 30px 80px rgba(15,23,42,.35)",
+};
+
+const mobileSheetHandleStyle = {
+  width: 48,
+  height: 5,
+  background: "#cbd5e1",
+  borderRadius: 999,
+  margin: "6px auto 14px",
+};
+
+const mobileFormBoxStyle = {
+  background: "white",
+  borderRadius: 18,
+  padding: 14,
+};
+
+const mobileActionRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 18,
+};
+
+const mobileCancelButtonStyle = {
+  padding: 14,
+  borderRadius: 10,
+  border: "none",
+  background: "#f1f5f9",
+  color: "#334155",
+  fontWeight: 900,
+  cursor: "pointer",
+  marginTop: 8,
+  fontSize: 15,
+};
+
+const mobileCss = `
+  .ctv-mobile-add-btn {
+    display: none;
+  }
+
+  .ctv-mobile-sheet-safe {
+  padding-bottom: 120px !important;
+}
+
+.ctv-mobile-status-row {
+  display: none;
+}
+
+  @media (max-width: 768px) {
+
+    .ctv-topbar h1 {
+    font-size: 17px !important;
+    white-space: nowrap !important;
+    line-height: 1.1 !important;
+  }
+
+  .ctv-topbar p {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+
+  .ctv-grid h2 {
+    font-size: 16px !important;
+    white-space: nowrap !important;
+    line-height: 1.1 !important;
+  }
+    .ctv-grid {
+      display: block !important;
+    }
+
+ .ctv-grid .countTextStyle,
+  .ctv-grid span {
+    font-size: 12px !important;
+  }
+
+  .ctv-grid > div .countTextStyle,
+  .ctv-grid > div span {
+    white-space: normal !important;
+  }
+
+  .ctv-grid .listHeaderStyle {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+  } 
+
+    .ctv-desktop-form {
+      display: none !important;
+    }
+
+    .ctv-topbar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 14px !important;
+    }
+
+    .ctv-topbar button {
+      width: 100% !important;
+    }
+
+    .ctv-route-card {
+      padding: 14px !important;
+    }
+
+    .ctv-route-top {
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+
+    .ctv-time-box {
+      min-width: 100% !important;
+      border-right: none !important;
+      border-bottom: 2px solid #e2e8f0 !important;
+      padding-bottom: 10px !important;
+      padding-top: 0 !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+
+    .ctv-route-main {
+      padding-right: 0 !important;
+    }
+
+    .ctv-route-title {
+      font-size: 18px !important;
+      line-height: 1.5 !important;
+    }
+
+    .ctv-meta-row {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 7px !important;
+    }
+
+    .ctv-action-top {
+      position: static !important;
+      justify-content: flex-end !important;
+      margin-bottom: 12px !important;
+    }
+
+    .ctv-status-buttons {
+     display: none !important;
+        }
+
+        .ctv-mobile-status-row {
+          display: grid !important;
+          grid-template-columns: 70px 1fr;
+          align-items: center;
+          gap: 10px;
+          margin-top: 14px;
+          padding-top: 12px;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .ctv-mobile-status-row label {
+          font-size: 13px;
+          font-weight: 900;
+          color: #475569;
+        }
+
+        .ctv-mobile-status-row select {
+          width: 100%;
+          padding: 11px 12px;
+          border-radius: 10px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          font-size: 13px;
+          font-weight: 900;
+          color: #0f172a;
+          outline: none;
+        }
+
+        .ctv-meta-row {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 12px !important;
+          font-weight: 700;
+          color: #475569 !important;
+          line-height: 1.55;
+        }
+
+        .ctv-route-title {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          align-items: center !important;
+          gap: 8px !important;
+        }
+
+        .ctv-route-title span:last-child {
+          margin-left: 8px !important;
+          margin-top: 0 !important;
+        }
+    .ctv-mobile-add-btn {
+      display: grid;
+      place-items: center;
+      position: fixed;
+      right: 22px;
+      bottom: 95px; /* ABOVE mobile nav */
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      border: 1px solid #fecaca;
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      color: #dc2626;
+      font-size: 34px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 18px 35px rgba(220,38,38,.25);
+      z-index: 999; /* stronger than nav */
+    }
+  }
+`;
 
 export default AdminCTVRoutesPage;
