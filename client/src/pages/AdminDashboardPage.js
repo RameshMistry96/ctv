@@ -5,16 +5,27 @@ import { API_BASE } from "../config";
 
 const socket = io(API_BASE);
 
-const STATUSES = ["ON TIME", "DELAYED", "LOADING", "ENROUTE", "ARRIVED", "CANCELLED", "NOT STARTED"];
+const STATUSES = [
+  "ON TIME",
+  "DELAYED",
+  "LOADING",
+  "ENROUTE",
+  "ARRIVED",
+  "CANCELLED",
+  "NOT STARTED",
+];
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [routes, setRoutes] = useState([]);
   const [now] = useState(new Date());
 
+  // ✅ Sidebar open / close
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const handleLogout = () => {
-  sessionStorage.removeItem("admin_auth");
-  navigate("/ctv-admin/login");
+    sessionStorage.removeItem("admin_auth");
+    navigate("/ctv-admin/login");
   };
 
   const loadRoutes = async () => {
@@ -27,17 +38,18 @@ export default function AdminDashboardPage() {
     }
   };
 
- useEffect(() => {
-  const isAuth = sessionStorage.getItem("admin_auth");
-  const loginTime = Number(sessionStorage.getItem("admin_login_time"));
-  const eightHours = 8 * 60 * 60 * 1000;
+  useEffect(() => {
+    const isAuth = sessionStorage.getItem("admin_auth");
+    const loginTime = Number(sessionStorage.getItem("admin_login_time"));
+    const eightHours = 8 * 60 * 60 * 1000;
 
-  if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
-    sessionStorage.removeItem("admin_auth");
-    sessionStorage.removeItem("admin_login_time");
-    navigate("/ctv-admin/login");
-    return;
-  }
+    if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
+      sessionStorage.removeItem("admin_auth");
+      sessionStorage.removeItem("admin_login_time");
+      navigate("/ctv-admin/login");
+      return;
+    }
+
     loadRoutes();
 
     socket.on("routes_updated", loadRoutes);
@@ -48,7 +60,7 @@ export default function AdminDashboardPage() {
       socket.off("routes_updated", loadRoutes);
       clearInterval(refreshTimer);
     };
- }, [navigate]);
+  }, [navigate]);
 
   const counts = useMemo(() => {
     const c = {};
@@ -60,7 +72,7 @@ export default function AdminDashboardPage() {
 
   const total = routes.length;
 
-    const recentActivities = useMemo(() => {
+  const recentActivities = useMemo(() => {
     return [...routes]
       .sort((a, b) => {
         const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
@@ -96,12 +108,29 @@ export default function AdminDashboardPage() {
 
   return (
     <div style={page}>
-      <aside style={sidebar}>
+      <style>{responsiveCss}</style>
+
+      <aside
+        style={sidebarOpen ? sidebar : sidebarClosed}
+        className={sidebarOpen ? "ctv-sidebar open" : "ctv-sidebar closed"}
+      >
         <div style={brand}>
-          <div style={brandIcon}>✈</div>
+          <button
+            className="ctv-mobile-close"
+            onClick={() => setSidebarOpen(false)}
+          >
+            ✕
+          </button>
+          <div style={brandIcon}>
+            <img
+              src="/favicon.ico"
+              alt="CTV"
+              style={{ width: 34, height: 34, objectFit: "contain" }}
+            />
+          </div>
+
           <div>
             <div style={brandTitle}>CTV SYSTEM</div>
-            <div style={brandSub}>Admin Control Panel</div>
           </div>
         </div>
 
@@ -124,7 +153,7 @@ export default function AdminDashboardPage() {
           <button onClick={handleLogout} style={logoutNavItem}>
             <span style={navIcon}>↪</span>
             Logout
-            </button>
+          </button>
         </NavGroup>
 
         <div style={systemStatus}>
@@ -138,39 +167,99 @@ export default function AdminDashboardPage() {
 
       <main style={main}>
         <header style={topbar}>
-          <button style={hamburger}>☰</button>
+          <button
+            style={hamburger}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title={sidebarOpen ? "Hide menu" : "Show menu"}
+          >
+            {sidebarOpen ? "✕" : "☰"}
+          </button>
 
           <div style={topRight}>
-            <div style={bell}>🔔<span style={badge}>{(counts["DELAYED"] || 0) + (counts["CANCELLED"] || 0)}</span></div>
+            <div style={bell}>
+              🔔
+              <span style={badge}>
+                {(counts["DELAYED"] || 0) + (counts["CANCELLED"] || 0)}
+              </span>
+            </div>
             <div style={avatar}>A</div>
             <strong>Admin User</strong>
             <span>⌄</span>
           </div>
         </header>
 
-        <section style={content}>
-          <div style={titleRow}>
+        <section style={content} className="ctv-dashboard-content">
+          <div style={titleRow} className="ctv-title-row">
             <div>
-              <h1 style={title}><span style={titleIcon}>▧</span> Dashboard</h1>
-              <p style={subtitle}>Overview of today’s operations and system status</p>
+              <h1 style={title}>
+                <span style={titleIcon}>▧</span> Dashboard
+              </h1>
+              <p style={subtitle}>
+                Overview of today’s operations and system status
+              </p>
             </div>
 
-            <div style={dateCard}>▣ {now.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric", weekday: "long" })}</div>
+            <div style={dateCard}>
+              ▣{" "}
+              {now.toLocaleDateString([], {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+                weekday: "long",
+              })}
+            </div>
           </div>
 
-          <div style={statsGrid}>
-            <StatCard icon="✈" value={total} label="Total Routes" sub="Scheduled for today" color="#2563eb" />
-            <StatCard icon="✓" value={counts["ON TIME"] || 0} label="On Time" sub="Routes running on time" color="#16a34a" />
-            <StatCard icon="◷" value={counts["DELAYED"] || 0} label="Delayed" sub="Routes delayed" color="#f97316" />
-            <StatCard icon="🚚" value={counts["LOADING"] || 0} label="Loading" sub="Currently loading" color="#7c3aed" />
-            <StatCard icon="✈" value={counts["ENROUTE"] || 0} label="Enroute" sub="Currently enroute" color="#0f766e" />
-            <StatCard icon="×" value={counts["CANCELLED"] || 0} label="Cancelled" sub="Routes cancelled" color="#ef4444" />
+          <div style={statsGrid} className="ctv-stats-grid">
+            <StatCard
+              icon="✈"
+              value={total}
+              label="Total Routes"
+              sub="Scheduled for today"
+              color="#2563eb"
+            />
+            <StatCard
+              icon="✓"
+              value={counts["ON TIME"] || 0}
+              label="On Time"
+              sub="Routes running on time"
+              color="#16a34a"
+            />
+            <StatCard
+              icon="◷"
+              value={counts["DELAYED"] || 0}
+              label="Delayed"
+              sub="Routes delayed"
+              color="#f97316"
+            />
+            <StatCard
+              icon="🚚"
+              value={counts["LOADING"] || 0}
+              label="Loading"
+              sub="Currently loading"
+              color="#7c3aed"
+            />
+            <StatCard
+              icon="✈"
+              value={counts["ENROUTE"] || 0}
+              label="Enroute"
+              sub="Currently enroute"
+              color="#0f766e"
+            />
+            <StatCard
+              icon="×"
+              value={counts["CANCELLED"] || 0}
+              label="Cancelled"
+              sub="Routes cancelled"
+              color="#ef4444"
+            />
           </div>
 
-          <div style={middleGrid}>
+          <div style={middleGrid} className="ctv-middle-grid">
             <div style={card}>
               <h2 style={cardTitle}>⌁ Route Status Overview</h2>
-              <div style={overviewBody}>
+
+              <div style={overviewBody} className="ctv-overview-body">
                 <div style={{ ...donut, background: donutGradient }}>
                   <div style={donutInner}>
                     <strong>{total}</strong>
@@ -181,10 +270,17 @@ export default function AdminDashboardPage() {
                 <div style={legend}>
                   {STATUSES.map((s) => (
                     <div key={s} style={legendRow}>
-                      <span style={{ ...legendDot, background: statusColor(s) }}></span>
+                      <span
+                        style={{ ...legendDot, background: statusColor(s) }}
+                      ></span>
                       <span>{labelCase(s)}</span>
                       <span>{counts[s] || 0}</span>
-                      <span>{total ? Math.round(((counts[s] || 0) / total) * 100) : 0}%</span>
+                      <span>
+                        {total
+                          ? Math.round(((counts[s] || 0) / total) * 100)
+                          : 0}
+                        %
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -193,40 +289,56 @@ export default function AdminDashboardPage() {
 
             <div style={card}>
               <h2 style={cardTitle}>◷ Recent Activity</h2>
-                    {recentActivities.length === 0 ? (
-                    <div style={{ color: "#64748b", fontWeight: 700 }}>
-                        No recent route activity yet
-                    </div>
-                    ) : (
-                    recentActivities.map((a, index) => (
-                        <Activity
-                        key={index}
-                        text={a.text}
-                        status={a.status}
-                        time={formatActivityTime(a.time)}
-                        />
-                    ))
-                    )}
+
+              {recentActivities.length === 0 ? (
+                <div style={{ color: "#64748b", fontWeight: 700 }}>
+                  No recent route activity yet
+                </div>
+              ) : (
+                recentActivities.map((a, index) => (
+                  <Activity
+                    key={index}
+                    text={a.text}
+                    status={a.status}
+                    time={formatActivityTime(a.time)}
+                  />
+                ))
+              )}
+
               <div style={viewLink}>View all activity logs →</div>
             </div>
           </div>
 
           <div style={card}>
-            <div style={routesHeader}>
+            <div style={routesHeader} className="ctv-routes-header">
               <h2 style={cardTitle}>☷ Today’s Routes</h2>
-              <div style={tabs}>
+
+              <div style={tabs} className="ctv-tabs">
                 <span style={tabActive}>All ({total})</span>
-                <span style={{ ...tab, color: "#16a34a" }}>On Time ({counts["ON TIME"] || 0})</span>
-                <span style={{ ...tab, color: "#f97316" }}>Delayed ({counts["DELAYED"] || 0})</span>
-                <span style={{ ...tab, color: "#2563eb" }}>Loading ({counts["LOADING"] || 0})</span>
-                <span style={{ ...tab, color: "#7c3aed" }}>Enroute ({counts["ENROUTE"] || 0})</span>
-                <span style={{ ...tab, color: "#dc2626" }}>Cancelled ({counts["CANCELLED"] || 0})</span>
+                <span style={{ ...tab, color: "#16a34a" }}>
+                  On Time ({counts["ON TIME"] || 0})
+                </span>
+                <span style={{ ...tab, color: "#f97316" }}>
+                  Delayed ({counts["DELAYED"] || 0})
+                </span>
+                <span style={{ ...tab, color: "#2563eb" }}>
+                  Loading ({counts["LOADING"] || 0})
+                </span>
+                <span style={{ ...tab, color: "#7c3aed" }}>
+                  Enroute ({counts["ENROUTE"] || 0})
+                </span>
+                <span style={{ ...tab, color: "#dc2626" }}>
+                  Cancelled ({counts["CANCELLED"] || 0})
+                </span>
               </div>
-              <Link to="/ctv-admin" style={addBtn}>＋ Add New Route</Link>
+
+              <Link to="/ctv-admin" style={addBtn}>
+                ＋ Add New Route
+              </Link>
             </div>
 
-            <div style={table}>
-              <div style={thead}>
+            <div style={table} className="ctv-table">
+              <div style={thead} className="ctv-thead">
                 <span>DEPART TIME</span>
                 <span>ROUTE</span>
                 <span>DESTINATION</span>
@@ -237,24 +349,48 @@ export default function AdminDashboardPage() {
               </div>
 
               {routes.slice(0, 7).map((r) => (
-                <div key={r.id} style={{ ...trow, borderLeft: `4px solid ${statusColor(r.status)}` }}>
+                <div
+                  key={r.id}
+                  style={{
+                    ...trow,
+                    borderLeft: `4px solid ${statusColor(r.status)}`,
+                  }}
+                  className="ctv-trow"
+                >
                   <span style={timeText}>{r.scheduled_departure_time}</span>
-                  <span style={routeText}>{r.route_number} → {r.destination}</span>
+                  <span style={routeText}>
+                    {r.route_number} → {r.destination}
+                  </span>
                   <span>{destName(r.destination)}</span>
-                  <span><b style={{ ...pill, background: statusColor(r.status) }}>{r.status}</b></span>
-                  <span style={{ color: r.delay_minutes > 0 ? "#f97316" : "#64748b", fontWeight: 800 }}>
+                  <span>
+                    <b style={{ ...pill, background: statusColor(r.status) }}>
+                      {r.status}
+                    </b>
+                  </span>
+                  <span
+                    style={{
+                      color: r.delay_minutes > 0 ? "#f97316" : "#64748b",
+                      fontWeight: 800,
+                    }}
+                  >
                     {r.delay_minutes > 0 ? `${r.delay_minutes} min` : "---"}
                   </span>
                   <span>{r.notes || "--"}</span>
                   <span style={actions}>
-                    <Link to="/ctv-admin" style={actionBtn}>✎</Link>
-                    <Link to="/tv" style={eyeBtn}>◉</Link>
+                    <Link to="/ctv-admin" style={actionBtn}>
+                      ✎
+                    </Link>
+                    <Link to="/tv" style={eyeBtn}>
+                      ◉
+                    </Link>
                   </span>
                 </div>
               ))}
             </div>
 
-            <Link to="/ctv-admin" style={bottomLink}>View all routes →</Link>
+            <Link to="/ctv-admin" style={bottomLink}>
+              View all routes →
+            </Link>
           </div>
         </section>
       </main>
@@ -309,91 +445,457 @@ function Activity({ text, status, time }) {
   return (
     <div style={activityRow}>
       <span>⊕</span>
-      <span>{text} {status && <b style={{ color: statusColor(status) }}>{status}</b>}</span>
+      <span>
+        {text} {status && <b style={{ color: statusColor(status) }}>{status}</b>}
+      </span>
       <span>{time}</span>
     </div>
   );
 }
 
-const statusColor = (s) => ({
-  "ON TIME": "#16a34a",
-  DELAYED: "#f97316",
-  LOADING: "#2563eb",
-  ENROUTE: "#7c3aed",
-  ARRIVED: "#0f766e",
-  CANCELLED: "#ef4444",
-  "NOT STARTED": "#94a3b8",
-}[s] || "#64748b");
+const statusColor = (s) =>
+  ({
+    "ON TIME": "#16a34a",
+    DELAYED: "#f97316",
+    LOADING: "#2563eb",
+    ENROUTE: "#7c3aed",
+    ARRIVED: "#0f766e",
+    CANCELLED: "#ef4444",
+    "NOT STARTED": "#94a3b8",
+  }[s] || "#64748b");
 
 const labelCase = (s) => s.charAt(0) + s.slice(1).toLowerCase();
-const destName = (d) => ({ YMX: "Montreal-Trudeau", YYZR: "Billy Bishop Toronto City", YBCS: "Nanaimo Harbour", YQX: "Gander Intl", YMXR: "Montreal Mirabel", YTZR: "Toronto Pearson", YQG: "Windsor Intl", YUL: "Montreal-Trudeau" }[d] || d);
 
-const page = { minHeight: "100vh", display: "flex", background: "#f8fafc", color: "#0f172a", fontFamily: "Inter, Arial, sans-serif" };
-const sidebar = { width: 280, background: "#ffffff", borderRight: "1px solid #e2e8f0", padding: "22px 14px", display: "flex", flexDirection: "column", gap: 16 };
-const brand = { display: "flex", gap: 14, alignItems: "center", padding: "0 8px 20px", borderBottom: "1px solid #e2e8f0" };
-const brandIcon = { width: 50, height: 50, borderRadius: 12, background: "#2563eb", color: "white", display: "grid", placeItems: "center", fontSize: 30 };
-const brandTitle = { fontSize: 24, fontWeight: 950 };
-const brandSub = { color: "#64748b", fontWeight: 600 };
+const destName = (d) =>
+  ({
+    YMX: "Montreal-Trudeau",
+    YYZR: "Billy Bishop Toronto City",
+    YBCS: "Nanaimo Harbour",
+    YQX: "Gander Intl",
+    YMXR: "Montreal Mirabel",
+    YTZR: "Toronto Pearson",
+    YQG: "Windsor Intl",
+    YUL: "Montreal-Trudeau",
+  }[d] || d);
+
+const page = {
+  minHeight: "100vh",
+  display: "flex",
+  background: "#f8fafc",
+  color: "#0f172a",
+  fontFamily: "Inter, Arial, sans-serif",
+};
+
+const sidebar = {
+  width: 280,
+  background: "#ffffff",
+  borderRight: "1px solid #e2e8f0",
+  padding: "22px 14px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  transition: "all .25s ease",
+  overflow: "hidden",
+  flexShrink: 0,
+};
+
+const sidebarClosed = {
+  width: 0,
+  minWidth: 0,
+  overflow: "hidden",
+  background: "#ffffff",
+  borderRight: "0 solid transparent",
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  transition: "all .25s ease",
+  flexShrink: 0,
+};
+
+const brand = {
+  display: "flex",
+  gap: 12,
+  alignItems: "center",
+  padding: "0 58px 18px 8px",
+  borderBottom: "1px solid #e2e8f0",
+  position: "relative",
+  minHeight: 64,
+};
+
+const brandIcon = {
+  width: 50,
+  height: 50,
+  borderRadius: 14,
+  background: "linear-gradient(135deg,#f8fafc,#e2e8f0)",
+  border: "1px solid #e2e8f0",
+  display: "grid",
+  placeItems: "center",
+  boxShadow: "0 8px 18px rgba(15,23,42,.08)",
+  flexShrink: 0,
+};
+
+const brandTitle = {
+  fontSize: 22,
+  fontWeight: 950,
+  color: "#7c2d12",
+  letterSpacing: "-.03em",
+  whiteSpace: "nowrap",
+  lineHeight: 1.1,
+};
+
+const brandSub = {
+  color: "#64748b",
+  fontWeight: 600,
+};
+
 const navGroup = { marginTop: 12 };
-const navTitle = { color: "#64748b", fontSize: 13, fontWeight: 900, margin: "18px 8px 10px" };
-const navItem = { display: "flex", gap: 14, alignItems: "center", padding: "14px 12px", borderRadius: 9, textDecoration: "none", color: "#0f172a", fontWeight: 700 };
-const navItemActive = { ...navItem, background: "#dbeafe", color: "#2563eb" };
-const navIcon = { fontSize: 20 };
-const systemStatus = { marginTop: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 18 };
-const greenDot = { width: 13, height: 13, background: "#22c55e", borderRadius: "50%" };
-const systemSub = { color: "#475569", marginTop: 8 };
+const navTitle = {
+  color: "#64748b",
+  fontSize: 13,
+  fontWeight: 900,
+  margin: "18px 8px 10px",
+};
 
-const main = { flex: 1 };
-const topbar = { height: 72, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 28px", borderBottom: "1px solid #e2e8f0", background: "#fff" };
-const hamburger = { border: "none", background: "transparent", fontSize: 26, cursor: "pointer" };
-const topRight = { display: "flex", gap: 14, alignItems: "center" };
+const navItem = {
+  display: "flex",
+  gap: 14,
+  alignItems: "center",
+  padding: "14px 12px",
+  borderRadius: 9,
+  textDecoration: "none",
+  color: "#0f172a",
+  fontWeight: 700,
+};
+
+const navItemActive = {
+  ...navItem,
+  background: "#dbeafe",
+  color: "#2563eb",
+};
+
+const navIcon = { fontSize: 20 };
+
+const systemStatus = {
+  marginTop: "auto",
+  border: "1px solid #e2e8f0",
+  borderRadius: 10,
+  padding: 18,
+};
+
+const greenDot = {
+  width: 13,
+  height: 13,
+  background: "#22c55e",
+  borderRadius: "50%",
+};
+
+const systemSub = {
+  color: "#475569",
+  marginTop: 8,
+};
+
+const main = {
+  flex: 1,
+  minWidth: 0,
+};
+
+const topbar = {
+  height: 72,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "0 28px",
+  borderBottom: "1px solid #e2e8f0",
+  background: "#fff",
+};
+
+const hamburger = {
+  width: 46,
+  height: 46,
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  borderRadius: 12,
+  fontSize: 24,
+  cursor: "pointer",
+  display: "grid",
+  placeItems: "center",
+  color: "#0f172a",
+  boxShadow: "0 8px 20px rgba(15,23,42,.06)",
+  fontWeight: 900,
+};
+
+const topRight = {
+  display: "flex",
+  gap: 14,
+  alignItems: "center",
+};
+
 const bell = { position: "relative", fontSize: 22 };
-const badge = { position: "absolute", top: -10, right: -9, background: "#ef4444", color: "white", borderRadius: "50%", fontSize: 11, padding: "2px 6px" };
-const avatar = { width: 40, height: 40, borderRadius: "50%", background: "#2563eb", color: "white", display: "grid", placeItems: "center", fontWeight: 900 };
+
+const badge = {
+  position: "absolute",
+  top: -10,
+  right: -9,
+  background: "#ef4444",
+  color: "white",
+  borderRadius: "50%",
+  fontSize: 11,
+  padding: "2px 6px",
+};
+
+const avatar = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  background: "#2563eb",
+  color: "white",
+  display: "grid",
+  placeItems: "center",
+  fontWeight: 900,
+};
 
 const content = { padding: 28 };
-const titleRow = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 };
-const title = { margin: 0, fontSize: 32, fontWeight: 950 };
-const titleIcon = { marginRight: 12 };
-const subtitle = { margin: "6px 0 0", color: "#475569", fontWeight: 600 };
-const dateCard = { border: "1px solid #cbd5e1", borderRadius: 8, padding: "14px 18px", background: "#fff", fontWeight: 800 };
 
-const statsGrid = { display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 14, marginBottom: 22 };
-const statCard = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 18, display: "flex", gap: 16, alignItems: "center" };
-const statIcon = { width: 56, height: 56, borderRadius: "50%", color: "white", display: "grid", placeItems: "center", fontSize: 28 };
+const titleRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 22,
+};
+
+const title = {
+  margin: 0,
+  fontSize: 32,
+  fontWeight: 950,
+};
+
+const titleIcon = { marginRight: 12 };
+
+const subtitle = {
+  margin: "6px 0 0",
+  color: "#475569",
+  fontWeight: 600,
+};
+
+const dateCard = {
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  padding: "14px 18px",
+  background: "#fff",
+  fontWeight: 800,
+};
+
+const statsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(6, 1fr)",
+  gap: 14,
+  marginBottom: 22,
+};
+
+const statCard = {
+  background: "#fff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 10,
+  padding: 18,
+  display: "flex",
+  gap: 16,
+  alignItems: "center",
+};
+
+const statIcon = {
+  width: 56,
+  height: 56,
+  borderRadius: "50%",
+  color: "white",
+  display: "grid",
+  placeItems: "center",
+  fontSize: 28,
+  flexShrink: 0,
+};
+
 const statValue = { fontSize: 28, fontWeight: 950 };
 const statLabel = { fontWeight: 900 };
 const statSub = { color: "#475569", fontSize: 13 };
 
-const middleGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 22 };
-const card = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: 20 };
-const cardTitle = { margin: "0 0 18px", fontSize: 20 };
-const overviewBody = { display: "grid", gridTemplateColumns: "250px 1fr", gap: 24, alignItems: "center" };
-const donut = { width: 170, height: 170, borderRadius: "50%", background: "conic-gradient(#16a34a 0 25%, #f97316 25% 42%, #2563eb 42% 60%, #7c3aed 60% 70%, #ef4444 70% 82%, #cbd5e1 82% 100%)", display: "grid", placeItems: "center", margin: "auto" };
-const donutInner = { width: 98, height: 98, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", textAlign: "center", fontSize: 22 };
-const legend = { display: "flex", flexDirection: "column", gap: 12 };
-const legendRow = { display: "grid", gridTemplateColumns: "20px 1fr 40px 50px", borderBottom: "1px solid #e2e8f0", paddingBottom: 8 };
-const legendDot = { width: 14, height: 14, borderRadius: "50%" };
+const middleGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 16,
+  marginBottom: 22,
+};
 
-const activityRow = { display: "grid", gridTemplateColumns: "30px 1fr 80px", padding: "11px 0", borderBottom: "1px solid #e2e8f0", fontSize: 14 };
-const viewLink = { color: "#2563eb", fontWeight: 900, marginTop: 12 };
+const card = {
+  background: "#fff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 10,
+  padding: 20,
+};
 
-const routesHeader = { display: "flex", alignItems: "center", gap: 16, marginBottom: 14 };
-const tabs = { display: "flex", gap: 8, flex: 1 };
-const tab = { padding: "8px 12px", borderRadius: 7, fontWeight: 900, background: "#f8fafc", fontSize: 13 };
-const tabActive = { ...tab, background: "#dbeafe", color: "#2563eb" };
-const addBtn = { background: "#2563eb", color: "white", padding: "11px 18px", borderRadius: 7, textDecoration: "none", fontWeight: 900 };
+const cardTitle = {
+  margin: "0 0 18px",
+  fontSize: 20,
+};
 
-const table = { borderTop: "1px solid #e2e8f0" };
-const thead = { display: "grid", gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr", padding: "13px 16px", color: "#64748b", fontSize: 12, fontWeight: 900 };
-const trow = { display: "grid", gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr", padding: "13px 16px", alignItems: "center", borderTop: "1px solid #e2e8f0", fontSize: 14 };
+const overviewBody = {
+  display: "grid",
+  gridTemplateColumns: "250px 1fr",
+  gap: 24,
+  alignItems: "center",
+};
+
+const donut = {
+  width: 170,
+  height: 170,
+  borderRadius: "50%",
+  background:
+    "conic-gradient(#16a34a 0 25%, #f97316 25% 42%, #2563eb 42% 60%, #7c3aed 60% 70%, #ef4444 70% 82%, #cbd5e1 82% 100%)",
+  display: "grid",
+  placeItems: "center",
+  margin: "auto",
+};
+
+const donutInner = {
+  width: 98,
+  height: 98,
+  borderRadius: "50%",
+  background: "#fff",
+  display: "grid",
+  placeItems: "center",
+  textAlign: "center",
+  fontSize: 22,
+};
+
+const legend = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+};
+
+const legendRow = {
+  display: "grid",
+  gridTemplateColumns: "20px 1fr 40px 50px",
+  borderBottom: "1px solid #e2e8f0",
+  paddingBottom: 8,
+};
+
+const legendDot = {
+  width: 14,
+  height: 14,
+  borderRadius: "50%",
+};
+
+const activityRow = {
+  display: "grid",
+  gridTemplateColumns: "30px 1fr 80px",
+  padding: "11px 0",
+  borderBottom: "1px solid #e2e8f0",
+  fontSize: 14,
+};
+
+const viewLink = {
+  color: "#2563eb",
+  fontWeight: 900,
+  marginTop: 12,
+};
+
+const routesHeader = {
+  display: "flex",
+  alignItems: "center",
+  gap: 16,
+  marginBottom: 14,
+};
+
+const tabs = {
+  display: "flex",
+  gap: 8,
+  flex: 1,
+};
+
+const tab = {
+  padding: "8px 12px",
+  borderRadius: 7,
+  fontWeight: 900,
+  background: "#f8fafc",
+  fontSize: 13,
+};
+
+const tabActive = {
+  ...tab,
+  background: "#dbeafe",
+  color: "#2563eb",
+};
+
+const addBtn = {
+  background: "#2563eb",
+  color: "white",
+  padding: "11px 18px",
+  borderRadius: 7,
+  textDecoration: "none",
+  fontWeight: 900,
+};
+
+const table = {
+  borderTop: "1px solid #e2e8f0",
+};
+
+const thead = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr",
+  padding: "13px 16px",
+  color: "#64748b",
+  fontSize: 12,
+  fontWeight: 900,
+};
+
+const trow = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr",
+  padding: "13px 16px",
+  alignItems: "center",
+  borderTop: "1px solid #e2e8f0",
+  fontSize: 14,
+};
+
 const timeText = { fontWeight: 900 };
 const routeText = { fontWeight: 900 };
-const pill = { color: "white", padding: "6px 12px", borderRadius: 5, fontSize: 12 };
-const actions = { display: "flex", gap: 8 };
-const actionBtn = { background: "#2563eb", color: "white", borderRadius: 6, padding: "7px 10px", textDecoration: "none" };
-const eyeBtn = { background: "#eef2ff", color: "#334155", borderRadius: 6, padding: "7px 10px", textDecoration: "none" };
-const bottomLink = { display: "inline-block", marginTop: 16, color: "#2563eb", fontWeight: 900, textDecoration: "none" };
+
+const pill = {
+  color: "white",
+  padding: "6px 12px",
+  borderRadius: 5,
+  fontSize: 12,
+};
+
+const actions = {
+  display: "flex",
+  gap: 8,
+};
+
+const actionBtn = {
+  background: "#2563eb",
+  color: "white",
+  borderRadius: 6,
+  padding: "7px 10px",
+  textDecoration: "none",
+};
+
+const eyeBtn = {
+  background: "#eef2ff",
+  color: "#334155",
+  borderRadius: 6,
+  padding: "7px 10px",
+  textDecoration: "none",
+};
+
+const bottomLink = {
+  display: "inline-block",
+  marginTop: 16,
+  color: "#2563eb",
+  fontWeight: 900,
+  textDecoration: "none",
+};
+
 const logoutNavItem = {
   display: "flex",
   gap: 14,
@@ -409,3 +911,106 @@ const logoutNavItem = {
   width: "100%",
   fontSize: 16,
 };
+
+const responsiveCss = `
+
+.ctv-mobile-close {
+  display: none !important;
+}
+
+  @media (max-width: 1100px) {
+    .ctv-stats-grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .ctv-middle-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+  }
+
+  @media (max-width: 768px) {
+    .ctv-sidebar.open {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 80;
+      width: 280px !important;
+      box-shadow: 20px 0 60px rgba(15,23,42,.25);
+    }
+
+    .ctv-sidebar.closed {
+      width: 0 !important;
+      min-width: 0 !important;
+    }
+
+    .ctv-dashboard-content {
+      padding: 16px !important;
+    }
+
+    .ctv-mobile-close {
+      display: grid !important;
+      place-items: center;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid #dbe4f0;
+      background: linear-gradient(135deg, #ffffff, #f8fafc);
+      color: #0f172a;
+      font-size: 20px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow:
+        0 10px 25px rgba(15,23,42,.08),
+        inset 0 1px 0 rgba(255,255,255,.9);
+      transition: all .22s ease;
+      z-index: 999;
+    }
+
+    .ctv-mobile-close:hover {
+      transform: scale(1.04);
+      background: linear-gradient(135deg, #f8fafc, #eef2f7);
+    }
+
+    .ctv-mobile-close:active {
+      transform: scale(.97);
+    }
+
+    .ctv-title-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+    }
+
+    .ctv-stats-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .ctv-overview-body {
+      grid-template-columns: 1fr !important;
+    }
+
+    .ctv-routes-header {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    .ctv-tabs {
+      overflow-x: auto !important;
+      padding-bottom: 4px !important;
+    }
+
+    .ctv-table {
+      overflow-x: auto !important;
+    }
+
+    .ctv-thead,
+    .ctv-trow {
+      min-width: 850px !important;
+    }
+  }
+`;

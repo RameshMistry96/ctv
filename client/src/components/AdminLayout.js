@@ -6,6 +6,7 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
+    sessionStorage.removeItem("admin_login_time");
     navigate("/ctv-admin/login");
   };
 
@@ -18,7 +19,24 @@ export default function AdminLayout({ children }) {
 
   return (
     <div style={layoutStyle}>
-      <div style={sidebarStyle}>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-sidebar {
+            display: none !important;
+          }
+
+          .admin-content {
+            width: 100% !important;
+            padding-bottom: 90px !important;
+          }
+
+          .admin-mobile-nav {
+            display: grid !important;
+          }
+        }
+      `}</style>
+
+      <div className="admin-sidebar" style={sidebarStyle}>
         <div style={logoBox}>🚚</div>
 
         {menu.map((item) => {
@@ -45,7 +63,28 @@ export default function AdminLayout({ children }) {
         </button>
       </div>
 
-      <div style={contentStyle}>{children}</div>
+      <div className="admin-content" style={contentStyle}>{children}</div>
+
+      <div className="admin-mobile-nav" style={mobileNavStyle}>
+        {menu.slice(0, 3).map((item) => {
+          const active = location.pathname === item.path;
+
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              style={{
+                ...mobileNavItemStyle,
+                color: active ? "#2563eb" : "#64748b",
+                background: active ? "#dbeafe" : "transparent",
+              }}
+            >
+              <span style={mobileIconStyle}>{item.icon}</span>
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -110,4 +149,36 @@ const logoutButtonStyle = {
 const contentStyle = {
   flex: 1,
   background: "#f8fafc",
+  minWidth: 0,
+};
+
+const mobileNavStyle = {
+  display: "none",
+  position: "fixed",
+  left: 10,
+  right: 10,
+  bottom: 10,
+  gridTemplateColumns: "repeat(3, 1fr)",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  padding: 8,
+  boxShadow: "0 18px 45px rgba(15,23,42,.18)",
+  zIndex: 100,
+};
+
+const mobileNavItemStyle = {
+  textDecoration: "none",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 4,
+  fontSize: 11,
+  fontWeight: 900,
+  borderRadius: 14,
+  padding: "9px 4px",
+};
+
+const mobileIconStyle = {
+  fontSize: 20,
 };
