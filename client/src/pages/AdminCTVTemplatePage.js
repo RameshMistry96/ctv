@@ -13,15 +13,16 @@ function AdminCTVTemplatePage() {
   const [editingId, setEditingId] = useState(null);
   const [viewMode, setViewMode] = useState("list");
   const [openDays, setOpenDays] = useState({});
+  const [showMobileForm, setShowMobileForm] = useState(false);
 
-    const [form, setForm] = useState({
+  const [form, setForm] = useState({
     day_of_week: "Monday",
     route_number: "",
     destination: "",
     scheduled_departure_time: "",
     route_type: "OUTBOUND",
     default_status: "ON TIME",
-    });
+  });
 
   const loadTemplates = async () => {
     try {
@@ -34,20 +35,20 @@ function AdminCTVTemplatePage() {
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     const isAuth = sessionStorage.getItem("admin_auth");
     const loginTime = Number(sessionStorage.getItem("admin_login_time"));
     const eightHours = 8 * 60 * 60 * 1000;
 
     if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
-    sessionStorage.removeItem("admin_auth");
-    sessionStorage.removeItem("admin_login_time");
-    navigate("/ctv-admin/login");
-    return;
+      sessionStorage.removeItem("admin_auth");
+      sessionStorage.removeItem("admin_login_time");
+      navigate("/ctv-admin/login");
+      return;
     }
 
-  loadTemplates();
-}, [navigate]); 
+    loadTemplates();
+  }, [navigate]);
 
   useEffect(() => {
     const nextOpen = {};
@@ -82,13 +83,14 @@ useEffect(() => {
   const resetForm = () => {
     setEditingId(null);
     setForm({
-    day_of_week: "Monday",
-    route_number: "",
-    destination: "",
-    scheduled_departure_time: "",
-    route_type: "OUTBOUND",
-    default_status: "ON TIME",
+      day_of_week: "Monday",
+      route_number: "",
+      destination: "",
+      scheduled_departure_time: "",
+      route_type: "OUTBOUND",
+      default_status: "ON TIME",
     });
+    setShowMobileForm(false);
   };
 
   const saveTemplate = async (e) => {
@@ -131,13 +133,14 @@ useEffect(() => {
   const startEdit = (route) => {
     setEditingId(route.id);
     setMessage("");
+    setShowMobileForm(true);
     setForm({
-    day_of_week: route.day_of_week,
-    route_number: route.route_number,
-    destination: route.destination,
-    scheduled_departure_time: route.scheduled_departure_time,
-    route_type: route.route_type || "OUTBOUND",
-    default_status: route.default_status || "ON TIME",
+      day_of_week: route.day_of_week,
+      route_number: route.route_number,
+      destination: route.destination,
+      scheduled_departure_time: route.scheduled_departure_time,
+      route_type: route.route_type || "OUTBOUND",
+      default_status: route.default_status || "ON TIME",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -165,10 +168,79 @@ useEffect(() => {
     }));
   };
 
+  const FormCard = ({ mobile = false }) => (
+    <div style={mobile ? mobileFormCard : card}>
+      <div style={cardHeader}>
+        <h2 style={cardTitle}>{editingId ? "Edit Weekly Route" : "Add Weekly Route"}</h2>
+        <span style={plusBtn}>＋</span>
+      </div>
+
+      <form onSubmit={saveTemplate} style={formStyle}>
+        <label style={label}>Select Day</label>
+        <select name="day_of_week" value={form.day_of_week} onChange={handleChange} style={input}>
+          {DAYS.map((day) => (
+            <option key={day}>{day}</option>
+          ))}
+        </select>
+
+        <label style={label}>Route Number</label>
+        <input name="route_number" value={form.route_number} onChange={handleChange} placeholder="e.g. YF201" style={input} />
+
+        <label style={label}>Destination</label>
+        <input name="destination" value={form.destination} onChange={handleChange} placeholder="e.g. YMX" style={input} />
+
+        <label style={label}>Route Type</label>
+        <select name="route_type" value={form.route_type} onChange={handleChange} style={input}>
+          <option value="OUTBOUND">OUTBOUND - Depart</option>
+          <option value="INBOUND">INBOUND - Arrive</option>
+        </select>
+
+        <label style={label}>Scheduled Time</label>
+        <input
+          type="time"
+          name="scheduled_departure_time"
+          value={form.scheduled_departure_time}
+          onChange={handleChange}
+          style={input}
+        />
+
+        <label style={label}>Status</label>
+        <select name="default_status" value={form.default_status} onChange={handleChange} style={input}>
+          <option>ON TIME</option>
+          <option>LOADING</option>
+          <option>DELAYED</option>
+          <option>CANCELLED</option>
+        </select>
+
+        {mobile ? (
+          <div style={mobileActionRow}>
+            <button type="button" style={mobileCancelBtn} onClick={resetForm}>
+              Cancel
+            </button>
+            <button style={button}>{editingId ? "Save Update" : "Save Route"}</button>
+          </div>
+        ) : (
+          <>
+            <button style={button}>{editingId ? "Save Update" : "Save Weekly Route"}</button>
+            {editingId && (
+              <button type="button" style={cancelButton} onClick={resetForm}>
+                Cancel Edit
+              </button>
+            )}
+          </>
+        )}
+      </form>
+
+      {message && <div style={messageBox}>{message}</div>}
+    </div>
+  );
+
   return (
     <AdminLayout>
-      <div style={page}>
-        <div style={header}>
+      <style>{mobileCss}</style>
+
+      <div style={page} className="tpl-page">
+        <div style={header} className="tpl-header">
           <div>
             <h1 style={title}>Weekly Route Templates</h1>
             <p style={subtitle}>
@@ -176,7 +248,7 @@ useEffect(() => {
             </p>
           </div>
 
-          <div style={headerActions}>
+          <div style={headerActions} className="tpl-header-actions">
             <button
               style={primaryTopBtn}
               onClick={async () => {
@@ -198,7 +270,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div style={statsBar}>
+        <div style={statsBar} className="tpl-stats">
           <StatBox icon="🗓" label="Days With Routes" value={stats.daysWithRoutes} sub="of 7 days" />
           <StatBox icon="🔗" label="Total Routes" value={stats.totalRoutes} sub="this week" />
           <StatBox icon="◷" label="Earliest Depart" value={stats.earliest} sub="scheduled time" />
@@ -206,64 +278,13 @@ useEffect(() => {
           <StatBox icon="✓" label="Active Status" value="Active" sub="All systems normal" green />
         </div>
 
-        <div style={layout}>
-          <div style={card}>
-            <div style={cardHeader}>
-              <h2 style={cardTitle}>{editingId ? "Edit Weekly Route" : "Add Weekly Route"}</h2>
-              <span style={plusBtn}>＋</span>
-            </div>
-
-            <form onSubmit={saveTemplate} style={formStyle}>
-              <label style={label}>Select Day</label>
-              <select name="day_of_week" value={form.day_of_week} onChange={handleChange} style={input}>
-                {DAYS.map((day) => (
-                  <option key={day}>{day}</option>
-                ))}
-              </select>
-
-              <label style={label}>Route Number</label>
-              <input name="route_number" value={form.route_number} onChange={handleChange} placeholder="e.g. YF201" style={input} />
-
-              <label style={label}>Destination</label>
-              <input name="destination" value={form.destination} onChange={handleChange} placeholder="e.g. YMX" style={input} />
-
-              <label style={label}>Route Type</label>
-            <select name="route_type" value={form.route_type} onChange={handleChange} style={input}>
-            <option value="OUTBOUND">OUTBOUND - Depart</option>
-            <option value="INBOUND">INBOUND - Arrive</option>
-            </select>
-
-            <label style={label}>Scheduled Time</label>
-            <input
-              type="time"
-              name="scheduled_departure_time"
-              value={form.scheduled_departure_time}
-              onChange={handleChange}
-              style={input}
-            />
-
-              <label style={label}>Status</label>
-              <select name="default_status" value={form.default_status} onChange={handleChange} style={input}>
-                <option>ON TIME</option>
-                <option>LOADING</option>
-                <option>DELAYED</option>
-                <option>CANCELLED</option>
-              </select>
-
-              <button style={button}>{editingId ? "Save Update" : "Save Weekly Route"}</button>
-
-              {editingId && (
-                <button type="button" style={cancelButton} onClick={resetForm}>
-                  Cancel Edit
-                </button>
-              )}
-            </form>
-
-            {message && <div style={messageBox}>{message}</div>}
+        <div style={layout} className="tpl-layout">
+          <div className="tpl-desktop-form">
+            <FormCard />
           </div>
 
           <div style={card}>
-            <div style={scheduleHeader}>
+            <div style={scheduleHeader} className="tpl-schedule-header">
               <h2 style={cardTitle}>Saved Weekly Schedule</h2>
               <div style={viewBtns}>
                 <button
@@ -293,7 +314,7 @@ useEffect(() => {
 
               return (
                 <div key={day} style={dayBlock}>
-                  <div style={dayHeader} onClick={() => toggleDay(day)}>
+                  <div style={dayHeader} className="tpl-day-header" onClick={() => toggleDay(day)}>
                     <span style={dayPill}>{shortDay}</span>
                     <strong style={dayName}>{day}</strong>
                     <span style={routeCountText}>
@@ -305,12 +326,12 @@ useEffect(() => {
                   {openDays[day] && dayRoutes.length > 0 && (
                     <div style={routesWrap}>
                       {dayRoutes.map((r) => (
-                        <div key={r.id} style={routeRow}>
+                        <div key={r.id} style={routeRow} className="tpl-route-row">
                           <div style={routeInfo}>
                             <strong style={routeTitle}>{r.route_number} <span style={arrow}>→</span> {r.destination}</strong>
                             <div style={timeText}>
-                            {getTimeLabel(r)}: {r.scheduled_departure_time}
-                            <span style={statusPill}>{r.default_status}</span>
+                              {getTimeLabel(r)}: {r.scheduled_departure_time}
+                              <span style={statusPill}>{r.default_status}</span>
                             </div>
                           </div>
 
@@ -328,7 +349,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div style={infoBox}>
+        <div style={infoBox} className="tpl-info">
           <div style={infoIcon}>ⓘ</div>
           <div>
             <strong>How it works</strong>
@@ -337,6 +358,20 @@ useEffect(() => {
             </p>
           </div>
         </div>
+
+        {!showMobileForm && (
+          <button className="tpl-mobile-add-btn" onClick={() => setShowMobileForm(true)}>
+            +
+          </button>
+        )}
+
+        {showMobileForm && (
+          <div style={mobileOverlay}>
+            <div style={mobileSheet}>
+              <FormCard mobile />
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
@@ -555,7 +590,10 @@ const routeCountText = { color: "#64748b", fontSize: 14 };
 const chevron = { color: "#2563eb", fontWeight: 900 };
 
 const routesWrap = {
-  borderTop: "1px solid #e2e8f0",
+  borderTop: "1px solid #dbeafe",
+  background: "#f8fbff",
+  padding: "10px",
+  borderLeft: "4px solid #2563eb",
 };
 
 const routeRow = {
@@ -564,9 +602,12 @@ const routeRow = {
   alignItems: "center",
   gap: "12px",
   padding: "16px 18px",
-  background: "white",
+  background: "#ffffff",
   borderLeft: "4px solid #10b981",
-  borderBottom: "1px solid #e2e8f0",
+  border: "1px solid #e2e8f0",
+  borderRadius: "12px",
+  marginBottom: "10px",
+  boxShadow: "0 4px 10px rgba(15,23,42,0.04)",
 };
 
 const routeInfo = { display: "flex", flexDirection: "column", gap: 6 };
@@ -623,5 +664,161 @@ const infoIcon = {
 };
 
 const infoText = { margin: "5px 0 0", color: "#475569" };
+
+const mobileOverlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(15,23,42,.55)",
+  zIndex: 100,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "18px",
+};
+
+const mobileSheet = {
+  width: "100%",
+  maxWidth: 390,
+  maxHeight: "82vh",
+  overflowY: "auto",
+  background: "#ffffff",
+  borderRadius: 24,
+  padding: "16px 16px 115px",
+  boxShadow: "0 30px 80px rgba(15,23,42,.35)",
+};
+
+const mobileFormCard = {
+  background: "white",
+  borderRadius: 18,
+  padding: 4,
+};
+
+const mobileActionRow = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 14,
+};
+
+const mobileCancelBtn = {
+  padding: "15px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#f1f5f9",
+  color: "#334155",
+  fontWeight: "900",
+  cursor: "pointer",
+  marginTop: 10,
+};
+
+const mobileCss = `
+  .tpl-mobile-add-btn {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .tpl-page {
+      padding: 16px !important;
+      padding-bottom: 110px !important;
+    }
+
+    .tpl-header {
+      flex-direction: column !important;
+      gap: 14px !important;
+      margin-bottom: 16px !important;
+    }
+
+    .tpl-header h1 {
+      font-size: 25px !important;
+      line-height: 1.1 !important;
+    }
+
+    .tpl-header p {
+      font-size: 13px !important;
+      line-height: 1.35 !important;
+    }
+
+    .tpl-header-actions {
+      width: 100% !important;
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+
+    .tpl-header-actions button {
+      width: 100% !important;
+    }
+
+    .tpl-stats {
+      grid-template-columns: 1fr !important;
+      padding: 14px !important;
+      gap: 12px !important;
+      margin-bottom: 16px !important;
+    }
+
+    .tpl-stats > div {
+      border-right: none !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      padding-bottom: 12px !important;
+    }
+
+    .tpl-layout {
+      display: block !important;
+    }
+
+    .tpl-desktop-form {
+      display: none !important;
+    }
+
+    .tpl-schedule-header {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+    }
+
+    .tpl-schedule-header h2 {
+      font-size: 19px !important;
+    }
+
+    .tpl-day-header {
+      grid-template-columns: 58px 1fr 1fr 24px !important;
+      padding: 0 10px !important;
+      gap: 8px !important;
+    }
+
+    .tpl-route-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    .tpl-route-row button {
+      flex: 1 !important;
+    }
+
+    .tpl-info {
+      align-items: flex-start !important;
+      font-size: 13px !important;
+    }
+
+    .tpl-mobile-add-btn {
+      display: grid;
+      place-items: center;
+      position: fixed;
+      right: 22px;
+      bottom: 95px;
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      border: 1px solid #fecaca;
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      color: #dc2626;
+      font-size: 34px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 18px 35px rgba(220,38,38,.25);
+      z-index: 999;
+    }
+  }
+`;
 
 export default AdminCTVTemplatePage;
