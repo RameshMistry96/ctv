@@ -1,4 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  FiGrid,
+  FiCalendar,
+  FiMonitor,
+  FiLogOut,
+} from "react-icons/fi";
 
 export default function AdminLayout({ children }) {
   const location = useLocation();
@@ -11,10 +17,40 @@ export default function AdminLayout({ children }) {
   };
 
   const menu = [
-    { name: "Dashboard", path: "/ctv-admin/dashboard", icon: "📊" },
-    { name: "Routes", path: "/ctv-admin", icon: "📦" },
-    { name: "Templates", path: "/ctv-admin/templates", icon: "🗓" },
-    { name: "TV Board", path: "/tv", icon: "📺" },
+    {
+      name: "Dashboard",
+      path: "/ctv-admin/dashboard",
+      icon: <FiGrid />,
+      color: "#2563eb",
+    },
+    {
+      name: "Routes",
+      path: "/ctv-admin",
+      icon: (
+        <img
+          src="/favicon.ico"
+          alt="Routes"
+          style={{
+            width: 20,
+            height: 20,
+            objectFit: "contain",
+          }}
+        />
+      ),
+      color: "#f97316",
+    },
+    {
+      name: "Templates",
+      path: "/ctv-admin/templates",
+      icon: <FiCalendar />,
+      color: "#7c3aed",
+    },
+    {
+      name: "TV Board",
+      path: "/tv",
+      icon: <FiMonitor />,
+      color: "#0f766e",
+    },
   ];
 
   return (
@@ -37,7 +73,17 @@ export default function AdminLayout({ children }) {
       `}</style>
 
       <div className="admin-sidebar" style={sidebarStyle}>
-        <div style={logoBox}>🚚</div>
+        <div style={logoBox}>
+          <img
+            src="/favicon.ico"
+            alt="RouteFlow"
+            style={{
+              width: 26,
+              height: 26,
+              objectFit: "contain",
+            }}
+          />
+        </div>
 
         {menu.map((item) => {
           const active = location.pathname === item.path;
@@ -50,20 +96,27 @@ export default function AdminLayout({ children }) {
               style={{
                 ...iconButtonStyle,
                 background: active ? "#dbeafe" : "transparent",
-                color: active ? "#2563eb" : "#334155",
               }}
             >
-              <span style={iconStyle}>{item.icon}</span>
+              <span style={{ ...iconStyle, color: item.color }}>
+                {item.icon}
+              </span>
             </Link>
           );
         })}
 
-        <button onClick={handleLogout} title="Logout" style={logoutButtonStyle}>
-          ↪
+        <button
+          onClick={handleLogout}
+          title="Logout"
+          style={logoutButtonStyle}
+        >
+          <FiLogOut style={{ color: "#dc2626" }} />
         </button>
       </div>
 
-      <div className="admin-content" style={contentStyle}>{children}</div>
+      <div className="admin-content" style={contentStyle}>
+        {children}
+      </div>
 
       <div className="admin-mobile-nav" style={mobileNavStyle}>
         {menu.slice(0, 3).map((item) => {
@@ -79,7 +132,9 @@ export default function AdminLayout({ children }) {
                 background: active ? "#dbeafe" : "transparent",
               }}
             >
-              <span style={mobileIconStyle}>{item.icon}</span>
+              <span style={{ ...mobileIconStyle, color: item.color }}>
+                {item.icon}
+              </span>
               <span>{item.name}</span>
             </Link>
           );
@@ -111,10 +166,8 @@ const logoBox = {
   height: 50,
   borderRadius: 14,
   background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
-  color: "white",
   display: "grid",
   placeItems: "center",
-  fontSize: 24,
   marginBottom: 18,
 };
 
@@ -140,7 +193,6 @@ const logoutButtonStyle = {
   placeItems: "center",
   border: "none",
   background: "#fee2e2",
-  color: "#dc2626",
   fontSize: 22,
   cursor: "pointer",
   marginTop: "auto",
