@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { API_BASE } from "../config";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -26,7 +25,7 @@ function AdminCTVTemplatePage() {
 
   const loadTemplates = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/templates`);
+      const res = await fetch("/api/ctv/api/templates");
       const data = await res.json();
       setTemplates(data);
     } catch (err) {
@@ -99,8 +98,8 @@ function AdminCTVTemplatePage() {
 
     try {
       const url = editingId
-        ? `${API_BASE}/api/templates/${editingId}`
-        : `${API_BASE}/api/templates`;
+        ? `/api/ctv/api/templates/${editingId}`
+        : `/api/ctv/api/templates`;
 
       const method = editingId ? "PATCH" : "POST";
 
@@ -150,7 +149,7 @@ function AdminCTVTemplatePage() {
     if (!ok) return;
 
     try {
-      await fetch(`${API_BASE}/api/templates/${id}`, {
+      await fetch(`/api/ctv/api/templates/${id}`, {
         method: "DELETE",
       });
 
@@ -253,7 +252,7 @@ function AdminCTVTemplatePage() {
               style={primaryTopBtn}
               onClick={async () => {
                 try {
-                  const res = await fetch(`${API_BASE}/api/routes/load-today`, {
+                  const res = await fetch("/api/ctv/api/routes/load-today", {
                     method: "POST",
                   });
 
