@@ -21,7 +21,7 @@ export default function AdminDashboardPage() {
   const [now] = useState(new Date());
 
   // ✅ Sidebar open / close
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");

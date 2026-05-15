@@ -17,11 +17,31 @@ function CTVBoardPage() {
       const res = await fetch(`/api/ctv/api/routes`);
       const data = await res.json();
 
+      const twoMinutes = 2 * 60 * 1000;
+      const currentTime = Date.now();
+
       const cleaned = data
-        .filter((r) => r.status !== "DEPARTED")
+        .filter((r) => {
+          const status = String(r.status || "").toUpperCase();
+
+          if (status !== "ARRIVED" && status !== "DEPARTED") return true;
+
+          const updatedTime = new Date(r.updated_at || r.created_at || 0).getTime();
+          if (!updatedTime) return false;
+
+          return currentTime - updatedTime <= twoMinutes;
+        })
         .sort((a, b) => {
-          const aDelayed = a.status === "DELAYED" ? 0 : 1;
-          const bDelayed = b.status === "DELAYED" ? 0 : 1;
+          const aStatus = String(a.status || "").toUpperCase();
+          const bStatus = String(b.status || "").toUpperCase();
+
+          const isFinalA = aStatus === "ARRIVED" || aStatus === "DEPARTED";
+          const isFinalB = bStatus === "ARRIVED" || bStatus === "DEPARTED";
+
+          if (isFinalA !== isFinalB) return isFinalA ? 1 : -1;
+
+          const aDelayed = aStatus === "DELAYED" ? 0 : 1;
+          const bDelayed = bStatus === "DELAYED" ? 0 : 1;
           if (aDelayed !== bDelayed) return aDelayed - bDelayed;
 
           return String(a.scheduled_departure_time || "").localeCompare(
@@ -116,7 +136,17 @@ function CTVBoardPage() {
 
       <div style={topHeaderStyle}>
         <div style={brandWrapStyle}>
-          <div style={planeIconStyle}>✈</div>
+          <div style={planeIconStyle}>
+            <img
+              src="/favicon.ico"
+              alt="CTV"
+              style={{
+                width: 44,
+                height: 44,
+                objectFit: "contain",
+              }}
+            />
+          </div>
           <div>
             <h1 style={titleStyle}>CTV ROUTE BOARD</h1>
             <div style={subtitleStyle}>Live Route Status — All Times Local</div>
@@ -283,7 +313,17 @@ function CTVBoardPage() {
             </div>
           </div>
 
-          <div style={planeSmallStyle}>✈</div>
+          <div style={planeSmallStyle}>
+            <img
+              src="/favicon.ico"
+              alt="CTV"
+              style={{
+                width: 34,
+                height: 34,
+                objectFit: "contain",
+              }}
+            />
+          </div>
           <div>
             <strong>CTV AIRPORT</strong>
             <div>Safe. Reliable. On Time.</div>
@@ -400,8 +440,10 @@ const brandWrapStyle = { display: "flex", alignItems: "center", gap: 18 };
 const planeIconStyle = {
   width: 68,
   height: 68,
-  borderRadius: 14,
-  background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
+  borderRadius: 16,
+  background: "linear-gradient(135deg, #1e293b, #b45309, #fb923c)",
+  border: "2px solid rgba(255,255,255,.22)",
+  boxShadow: "0 10px 26px rgba(251,146,60,.22)",
   display: "grid",
   placeItems: "center",
   fontSize: 40,
@@ -540,8 +582,10 @@ const footerBrandStyle = { display: "flex", alignItems: "center", gap: 16 };
 const planeSmallStyle = {
   width: 54,
   height: 54,
-  borderRadius: 13,
-  background: "#2563eb",
+  borderRadius: 14,
+  background: "linear-gradient(135deg, #1e293b, #b45309, #fb923c)",
+  border: "1px solid rgba(255,255,255,.18)",
+  boxShadow: "0 8px 20px rgba(251,146,60,.20)",
   display: "grid",
   placeItems: "center",
   fontSize: 33,
