@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { API_BASE } from "../config";
+
 
 const STATUSES = [
   "NOT STARTED",
@@ -36,7 +36,7 @@ function AdminCTVRoutesPage() {
 
   const loadRoutes = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/routes`);
+      const res = await fetch(`/api/ctv/api/routes`);
       const data = await res.json();
       setRoutes(data);
     } catch (err) {
@@ -79,7 +79,7 @@ function AdminCTVRoutesPage() {
         delay_minutes: Number(form.delay_minutes) || 0,
       };
 
-      const res = await fetch(`${API_BASE}/api/routes`, {
+      const res = await fetch(`/api/ctv/api/routes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -113,7 +113,7 @@ function AdminCTVRoutesPage() {
 
   const loadTodaySchedule = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/routes/load-today`, {
+      const res = await fetch(`/api/ctv/api/routes/load-today`, {
         method: "POST",
       });
 
@@ -133,7 +133,7 @@ function AdminCTVRoutesPage() {
 
   const updateStatus = async (id, status) => {
     try {
-      const res = await fetch(`${API_BASE}/api/routes/${id}`, {
+      const res = await fetch(`/api/ctv/api/routes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -164,7 +164,7 @@ function AdminCTVRoutesPage() {
     try {
       const delayNumber = Number(modalForm.delay_minutes) || 0;
 
-      const res = await fetch(`${API_BASE}/api/routes/${modalRoute.id}`, {
+      const res = await fetch(`/api/ctv/api/routes/${modalRoute.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -194,7 +194,7 @@ function AdminCTVRoutesPage() {
     if (!ok) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/routes/${id}`, {
+      const res = await fetch(`/api/ctv/api/routes/${id}`, {
         method: "DELETE",
       });
 

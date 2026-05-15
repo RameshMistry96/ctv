@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
 
   const loadRoutes = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/routes`);
+      const res = await fetch(`/api/ctv/api/routes`);
       const data = await res.json();
       setRoutes(data.filter((r) => r.status !== "DEPARTED"));
     } catch (err) {
