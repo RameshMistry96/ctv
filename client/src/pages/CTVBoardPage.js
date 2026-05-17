@@ -56,7 +56,7 @@ function CTVBoardPage() {
     }
   };
 
-    useEffect(() => {
+  useEffect(() => {
     const isAuth = sessionStorage.getItem("tv_auth");
     const loginTime = Number(sessionStorage.getItem("tv_login_time"));
     const eightHours = 8 * 60 * 60 * 1000;
@@ -67,6 +67,7 @@ function CTVBoardPage() {
       navigate("/tv-login");
       return;
     }
+
     loadRoutes();
 
     socket.on("routes_updated", loadRoutes);
@@ -82,25 +83,25 @@ function CTVBoardPage() {
   }, [navigate]);
 
   useEffect(() => {
-  const el = tableRef.current;
-  if (!el || routes.length <= 6) return;
+    const el = tableRef.current;
+    if (!el || routes.length <= 6) return;
 
-  let direction = 1;
+    let direction = 1;
 
-  const scrollTimer = setInterval(() => {
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
-      direction = -1;
-    }
+    const scrollTimer = setInterval(() => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+        direction = -1;
+      }
 
-    if (el.scrollTop <= 5) {
-      direction = 1;
-    }
+      if (el.scrollTop <= 5) {
+        direction = 1;
+      }
 
-    el.scrollTop += direction * 1.5;
-  }, 40);
+      el.scrollTop += direction * 1;
+    }, 70);
 
-  return () => clearInterval(scrollTimer);
-}, [routes]);
+    return () => clearInterval(scrollTimer);
+  }, [routes]);
 
   const statusCounts = useMemo(() => {
     const counts = {};
@@ -126,6 +127,11 @@ function CTVBoardPage() {
         @keyframes cancelledGlow {
           0%, 100% { box-shadow: inset 0 0 0 rgba(220,38,38,0), 0 0 0 rgba(220,38,38,0); }
           50% { box-shadow: inset 0 0 26px rgba(220,38,38,.20), 0 0 22px rgba(220,38,38,.20); }
+        }
+
+        @keyframes twoMinuteGlow {
+          0%, 100% { box-shadow: inset 0 0 0 rgba(56,189,248,0), 0 0 0 rgba(56,189,248,0); }
+          50% { box-shadow: inset 0 0 28px rgba(56,189,248,.20), 0 0 24px rgba(56,189,248,.22); }
         }
 
         @keyframes statusPulse {
@@ -154,47 +160,46 @@ function CTVBoardPage() {
         </div>
 
         <div style={clockWrapStyle}>
-        {/* ✅ FULLSCREEN BUTTON */}
-        <button
+          <button
             onClick={() => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen();
-                } else {
-                    document.exitFullscreen();
-                }
-                }}
-            style={{
-            padding: "10px 14px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            fontWeight: 800,
-            cursor: "pointer",
-            marginRight: 12
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+              } else {
+                document.exitFullscreen();
+              }
             }}
-        >
+            style={{
+              padding: "10px 14px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 800,
+              cursor: "pointer",
+              marginRight: 12,
+            }}
+          >
             ⛶
-        </button>
+          </button>
 
-        <div style={clockIconStyle}>◷</div>
-        <div>
+          <div style={clockIconStyle}>◷</div>
+          <div>
             <div style={clockStyle}>
-            {now.toLocaleTimeString([], {
+              {now.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
-            })}
+              })}
             </div>
             <div style={dateStyle}>
-            {now.toLocaleDateString([], {
+              {now.toLocaleDateString([], {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
                 year: "numeric",
-            })}
+              })}
             </div>
-        </div>
+          </div>
         </div>
       </div>
 
@@ -234,62 +239,68 @@ function CTVBoardPage() {
         {routes.length === 0 ? (
           <div style={emptyStyle}>No active routes loaded</div>
         ) : (
-          routes.map((route, index) => (
-            <div
-              key={route.id}
-              style={{
-                ...rowStyle,
-                animation:
-                  route.status === "DELAYED"
-                    ? "rowFadeIn .35s ease both, delayedGlow 2.2s ease-in-out infinite"
-                    : route.status === "CANCELLED"
-                    ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
-                    : "rowFadeIn .35s ease both",
-                animationDelay: `${index * 0.04}s`,
-                borderColor: statusColor(route.status),
-                background: rowBackground(route.status),
-              }}
-            >
-              <div style={departCellStyle}>
-                {route.scheduled_departure_time}
-                <span style={timeLabelStyle}>{getTimeLabel(route)}</span>
-              </div>
+          routes.map((route, index) => {
+            const isTwoMinuteWarning = isWithinTwoMinuteWarning(route, now);
 
-              <div style={routeCellStyle}>
-                {route.route_number} <span style={arrowStyle}>→</span>{" "}
-                {route.destination}
-              </div>
+            return (
+              <div
+                key={route.id}
+                style={{
+                  ...rowStyle,
+                  animation:
+                    route.status === "DELAYED"
+                      ? "rowFadeIn .35s ease both, delayedGlow 2.2s ease-in-out infinite"
+                      : route.status === "CANCELLED"
+                      ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
+                      : isTwoMinuteWarning
+                      ? "rowFadeIn .35s ease both, twoMinuteGlow 1.8s ease-in-out infinite"
+                      : "rowFadeIn .35s ease both",
+                  animationDelay: `${index * 0.04}s`,
+                  borderColor: statusColor(route.status),
+                  background: rowBackground(route.status),
+                }}
+              >
+                <div style={departCellStyle}>
+                  {route.scheduled_departure_time}
+                  <span style={timeLabelStyle}>{getTimeLabel(route)}</span>
+                </div>
 
-              <div style={destinationCellStyle}>
-                <strong>{route.destination}</strong>
-                <span>{destinationName(route.destination)}</span>
-              </div>
+                <div style={routeCellStyle}>
+                  {route.route_number} <span style={arrowStyle}>→</span>{" "}
+                  {route.destination}
+                </div>
 
-              <div>
-                <span
-                  style={{
-                    ...statusBadgeStyle,
-                    background: statusColor(route.status),
-                    animation:
-                      route.status === "DELAYED" || route.status === "CANCELLED"
-                        ? "statusPulse 1.5s ease-in-out infinite"
-                        : "none",
-                  }}
-                >
-                  {route.status}
-                </span>
-              </div>
+                <div style={destinationCellStyle}>
+                  <strong>{route.destination}</strong>
+                  <span>{destinationName(route.destination)}</span>
+                </div>
 
-              <div style={delayCellStyle}>
-                {(() => {
-                  const delay = getAutoDelayMinutes(route, now);
-                  return delay > 0 ? `${delay} min` : "--";
-                })()}
-              </div>
+                <div>
+                  <span
+                    style={{
+                      ...statusBadgeStyle,
+                      background: statusColor(route.status),
+                      animation:
+                        route.status === "DELAYED" || route.status === "CANCELLED"
+                          ? "statusPulse 1.5s ease-in-out infinite"
+                          : "none",
+                    }}
+                  >
+                    {route.status}
+                  </span>
+                </div>
 
-              <div style={noteCellStyle}>{route.notes || "--"}</div>
-            </div>
-          ))
+                <div style={delayCellStyle}>
+                  {(() => {
+                    const delay = getAutoDelayMinutes(route, now);
+                    return delay === null ? "--" : `${delay} min`;
+                  })()}
+                </div>
+
+                <div style={noteCellStyle}>{getDisplayNotes(route, now)}</div>
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -342,21 +353,99 @@ const getTimeLabel = (route) => {
   return getRouteType(route) === "INBOUND" ? "ARRIVE" : "DEPART";
 };
 
-const getAutoDelayMinutes = (route, now) => {
-  const completedStatuses = ["ARRIVED", "DEPARTED", "CANCELLED"];
-  if (completedStatuses.includes(route.status)) return Number(route.delay_minutes) || 0;
-
+const getScheduledDate = (route, now) => {
   const scheduled = route.scheduled_departure_time;
-  if (!scheduled) return Number(route.delay_minutes) || 0;
+  if (!scheduled) return null;
 
   const [hh, mm] = scheduled.split(":").map(Number);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return Number(route.delay_minutes) || 0;
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
 
   const scheduledDate = new Date(now);
   scheduledDate.setHours(hh, mm, 0, 0);
 
+  return scheduledDate;
+};
+
+const getActualDate = (route, now) => {
+  const actualTime = route.actual_departure_time || route.actual_arrival_time;
+
+  if (actualTime && String(actualTime).includes(":")) {
+    const [hh, mm] = String(actualTime).split(":").map(Number);
+
+    if (!Number.isNaN(hh) && !Number.isNaN(mm)) {
+      const actualDate = new Date(now);
+      actualDate.setHours(hh, mm, 0, 0);
+      return actualDate;
+    }
+  }
+
+  const updatedTime = route.updated_at || route.created_at;
+  if (updatedTime) {
+    const updatedDate = new Date(updatedTime);
+    if (!Number.isNaN(updatedDate.getTime())) return updatedDate;
+  }
+
+  return null;
+};
+
+const getAutoDelayMinutes = (route, now) => {
+  const status = String(route.status || "").toUpperCase();
+  const finalStatuses = ["ARRIVED", "DEPARTED"];
+
+  const scheduledDate = getScheduledDate(route, now);
+  if (!scheduledDate) return Number(route.delay_minutes) || 0;
+
+  if (finalStatuses.includes(status)) {
+    const actualDate = getActualDate(route, now);
+
+    if (actualDate) {
+      return Math.max(0, Math.floor((actualDate - scheduledDate) / 60000));
+    }
+
+    return Number(route.delay_minutes) || 0;
+  }
+
   const diffMinutes = Math.floor((now - scheduledDate) / 60000);
-  return Math.max(Number(route.delay_minutes) || 0, diffMinutes > 0 ? diffMinutes : 0);
+
+  if (diffMinutes < 0) return null;
+
+  return Math.max(0, diffMinutes);
+};
+
+const getDisplayNotes = (route, now) => {
+  const status = String(route.status || "").toUpperCase();
+  const finalStatuses = ["ARRIVED", "DEPARTED"];
+
+  if (finalStatuses.includes(status)) {
+    return route.notes || "--";
+  }
+
+  const scheduledDate = getScheduledDate(route, now);
+  const adminDelay = Number(route.delay_minutes) || 0;
+
+  if (!scheduledDate) return route.notes || "--";
+
+  const diffMinutes = Math.floor((now - scheduledDate) / 60000);
+
+  if (diffMinutes < 0 && adminDelay > 0) {
+    return `Expected Delay: ${adminDelay} min`;
+  }
+
+  return route.notes || "--";
+};
+
+const isWithinTwoMinuteWarning = (route, now) => {
+  const status = String(route.status || "").toUpperCase();
+  const finalStatuses = ["ARRIVED", "DEPARTED", "CANCELLED"];
+
+  if (finalStatuses.includes(status)) return false;
+
+  const scheduledDate = getScheduledDate(route, now);
+  if (!scheduledDate) return false;
+
+  const diff = scheduledDate - now;
+
+  return diff > 0 && diff <= 2 * 60 * 1000;
 };
 
 const rowBackground = (status) => {
@@ -535,10 +624,11 @@ const emptyStyle = {
 
 const timeLabelStyle = {
   display: "block",
-  fontSize: 12,
+  fontSize: 15,
+  fontWeight: 900,
   color: "#93c5fd",
-  marginTop: 4,
-  letterSpacing: 1,
+  marginTop: 6,
+  letterSpacing: 1.4,
 };
 
 const departCellStyle = { fontSize: 29, fontWeight: 950 };
