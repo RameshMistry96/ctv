@@ -97,8 +97,8 @@ function CTVBoardPage() {
         direction = 1;
       }
 
-      el.scrollTop += direction * 1;
-    }, 70);
+      el.scrollTop += direction * 0.7;
+    }, 80);
 
     return () => clearInterval(scrollTimer);
   }, [routes]);
@@ -138,6 +138,16 @@ function CTVBoardPage() {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.04); }
         }
+
+          .ctv-scroll-area::-webkit-scrollbar {
+            width: 0;
+            display: none;
+          }
+          
+          .ctv-scroll-area {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
       `}</style>
 
       <div style={topHeaderStyle}>
@@ -226,7 +236,7 @@ function CTVBoardPage() {
         ))}
       </div>
 
-      <div ref={tableRef} style={tableStyle}>
+      <div ref={tableRef} className="ctv-scroll-area" style={tableStyle}>
         <div style={tableHeaderStyle}>
           <div>◷ ARRIVE / DEPART</div>
           <div>✈ ROUTE</div>
@@ -623,10 +633,8 @@ const routeCellStyle = { fontSize: 24, fontWeight: 950 };
 const arrowStyle = { color: "#93c5fd", margin: "0 13px" };
 
 const destinationCellStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
   fontSize: 23,
+  fontWeight: 950,
 };
 
 const statusBadgeStyle = {
