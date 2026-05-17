@@ -620,12 +620,17 @@ const emptyStyle = {
 };
 
 const timeLabelStyle = {
-  display: "block",
+  display: "inline-block",
   fontSize: 15,
-  fontWeight: 900,
-  color: "#93c5fd",
-  marginTop: 6,
-  letterSpacing: 1.4,
+  fontWeight: 950,
+  color: "#dbeafe",
+  marginTop: 7,
+  letterSpacing: 1.2,
+  padding: "4px 10px",
+  borderRadius: 999,
+  background: "rgba(14,165,233,.20)",
+  border: "1px solid rgba(125,211,252,.45)",
+  boxShadow: "0 0 14px rgba(14,165,233,.18)",
 };
 
 const departCellStyle = { fontSize: 29, fontWeight: 950 };
