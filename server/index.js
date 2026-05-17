@@ -16,10 +16,13 @@ app.use(express.json());
 
 function getLocalTodayDate() {
   const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 function getDelayMinutes(routeDate, scheduledTime) {
@@ -396,7 +399,10 @@ app.post("/api/routes/load-today", (req, res) => {
     "Saturday",
   ];
 
-  const todayDay = days[new Date().getDay()];
+  const todayDay = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto",
+    weekday: "long",
+  }).format(new Date());
 
   db.all(
     "SELECT * FROM ctv_route_templates WHERE day_of_week = ?",
