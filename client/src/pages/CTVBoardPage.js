@@ -272,7 +272,9 @@ function CTVBoardPage() {
               >
                 <div style={departCellStyle}>
                   {route.scheduled_departure_time}
-                  <span style={timeLabelStyle}>{getTimeLabel(route)}</span>
+                  <span style={timeLabelStyle(getTimeLabel(route))}>
+                  {getTimeLabel(route)}
+                </span>
                 </div>
 
                 <div style={routeCellStyle}>
@@ -619,7 +621,7 @@ const emptyStyle = {
   fontWeight: 900,
 };
 
-const timeLabelStyle = {
+const timeLabelStyle = (label) => ({
   display: "inline-block",
   alignSelf: "flex-start",
   fontSize: 15,
@@ -628,11 +630,23 @@ const timeLabelStyle = {
   letterSpacing: 1.2,
   padding: "4px 12px",
   borderRadius: 999,
-  background: "rgba(14,165,233,.18)",
-  border: "1px solid rgba(125,211,252,.38)",
-  boxShadow: "0 0 12px rgba(14,165,233,.14)",
   lineHeight: 1.1,
-};
+
+  background:
+    label === "ARRIVE"
+      ? "rgba(16,185,129,.20)"
+      : "rgba(14,165,233,.18)",
+
+  border:
+    label === "ARRIVE"
+      ? "1px solid rgba(52,211,153,.40)"
+      : "1px solid rgba(125,211,252,.38)",
+
+  boxShadow:
+    label === "ARRIVE"
+      ? "0 0 12px rgba(16,185,129,.18)"
+      : "0 0 12px rgba(14,165,233,.14)",
+});
 
 const departCellStyle = {
   fontSize: 29,
