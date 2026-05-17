@@ -271,8 +271,7 @@ function CTVBoardPage() {
                 </div>
 
                 <div style={destinationCellStyle}>
-                  <strong>{route.destination}</strong>
-                  <span>{destinationName(route.destination)}</span>
+                  {route.destination}
                 </div>
 
                 <div>
@@ -490,18 +489,6 @@ const statusIcon = (status) =>
     CANCELLED: "×",
     DEPARTED: "→",
   }[status] || "•");
-
-const destinationName = (dest) =>
-  ({
-    YYZR: "Billy Bishop Toronto City",
-    YMX: "Montreal-Trudeau",
-    YBCS: "Nanaimo Harbour",
-    YQX: "Gander Intl",
-    YMXR: "Montréal Mirabel",
-    YTZR: "Toronto Pearson",
-    YQG: "Windsor Intl",
-    YUL: "Montréal-Trudeau",
-  }[dest] || "");
 
 const pageStyle = {
   minHeight: "100vh",
