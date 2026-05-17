@@ -621,19 +621,29 @@ const emptyStyle = {
 
 const timeLabelStyle = {
   display: "inline-block",
+  alignSelf: "flex-start",
   fontSize: 15,
   fontWeight: 950,
   color: "#dbeafe",
-  marginTop: 7,
   letterSpacing: 1.2,
-  padding: "4px 10px",
+  padding: "4px 12px",
   borderRadius: 999,
-  background: "rgba(14,165,233,.20)",
-  border: "1px solid rgba(125,211,252,.45)",
-  boxShadow: "0 0 14px rgba(14,165,233,.18)",
+  background: "rgba(14,165,233,.18)",
+  border: "1px solid rgba(125,211,252,.38)",
+  boxShadow: "0 0 12px rgba(14,165,233,.14)",
+  lineHeight: 1.1,
 };
 
-const departCellStyle = { fontSize: 29, fontWeight: 950 };
+const departCellStyle = {
+  fontSize: 29,
+  fontWeight: 950,
+  color: "#ffffff",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  gap: 9,
+  padding: "8px 0",
+};
 const routeCellStyle = { fontSize: 24, fontWeight: 950 };
 const arrowStyle = { color: "#93c5fd", margin: "0 13px" };
 
