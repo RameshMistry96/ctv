@@ -167,7 +167,7 @@ function AdminCTVTemplatePage() {
     }));
   };
 
-  const FormCard = ({ mobile = false }) => (
+  const FormCard = (mobile = false) => (
     <div style={mobile ? mobileFormCard : card}>
       <div style={cardHeader}>
         <h2 style={cardTitle}>{editingId ? "Edit Weekly Route" : "Add Weekly Route"}</h2>
@@ -279,7 +279,7 @@ function AdminCTVTemplatePage() {
 
         <div style={layout} className="tpl-layout">
           <div className="tpl-desktop-form">
-            <FormCard />
+            {FormCard(false)}
           </div>
 
           <div style={card}>
@@ -367,7 +367,7 @@ function AdminCTVTemplatePage() {
         {showMobileForm && (
           <div style={mobileOverlay}>
             <div style={mobileSheet}>
-              <FormCard mobile />
+              {FormCard(true)}
             </div>
           </div>
         )}

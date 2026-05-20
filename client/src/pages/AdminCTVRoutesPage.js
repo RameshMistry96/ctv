@@ -212,7 +212,7 @@ function AdminCTVRoutesPage() {
     }
   };
 
-  const AddRouteForm = ({ isMobile = false }) => (
+  const AddRouteForm = (isMobile = false) => (
     <div style={isMobile ? mobileFormBoxStyle : panelStyle}>
       <h2 style={panelTitleStyle}>
         <span style={smallIconStyle}>🚚</span> Add New Route
@@ -349,7 +349,7 @@ function AdminCTVRoutesPage() {
 
           <div style={gridStyle} className="ctv-grid">
             <div className="ctv-desktop-form">
-              <AddRouteForm />
+              {AddRouteForm(false)}
             </div>
 
             <div style={panelStyle}>
@@ -468,7 +468,7 @@ function AdminCTVRoutesPage() {
           {showMobileAddForm && (
             <div style={mobileOverlayStyle}>
               <div style={mobileSheetStyle} className="ctv-mobile-sheet-safe">
-                <AddRouteForm isMobile />
+                {AddRouteForm(true)}
               </div>
             </div>
           )}
