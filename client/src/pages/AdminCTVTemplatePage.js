@@ -27,7 +27,14 @@ function AdminCTVTemplatePage() {
     try {
       const res = await fetch("/api/ctv/api/templates");
       const data = await res.json();
-      setTemplates(data);
+
+      const cleanData = data.map((t) => ({
+        ...t,
+        day_of_week:
+          String(t.day_of_week || "").trim(),
+      }));
+
+      setTemplates(cleanData);
     } catch (err) {
       console.error("Failed to load templates:", err);
       setMessage("Failed to load weekly templates");
@@ -149,12 +156,20 @@ function AdminCTVTemplatePage() {
     if (!ok) return;
 
     try {
-      await fetch(`/api/ctv/api/templates/${id}`, {
+      const res = await fetch(`/api/ctv/api/templates/${id}`, {
         method: "DELETE",
       });
 
+      if (!res.ok) {
+        setMessage("Failed to delete weekly route");
+        return;
+      }
+
+      setTemplates((prev) =>
+        prev.filter((t) => t.id !== id)
+      );
+
       setMessage("Weekly route deleted");
-      loadTemplates();
     } catch (err) {
       setMessage("Failed to delete weekly route");
     }
