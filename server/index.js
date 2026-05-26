@@ -173,7 +173,14 @@ app.patch("/api/routes/:id", (req, res) => {
   } = req.body;
 
   const actual_departure_time =
-    status === "DEPARTED" ? new Date().toTimeString().slice(0, 5) : null;
+    status === "DEPARTED"
+      ? new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Toronto",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(new Date())
+      : null;
 
   db.run(
     `
