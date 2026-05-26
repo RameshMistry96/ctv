@@ -101,7 +101,7 @@ app.get("/api/routes", (req, res) => {
     WHERE route_date = ?
     AND (
       status != 'DEPARTED'
-      OR datetime(updated_at) >= datetime('now', '-30 seconds')
+      OR datetime(updated_at) >= datetime('now', '-35 seconds')
     )
     ORDER BY scheduled_departure_time ASC
     `,
