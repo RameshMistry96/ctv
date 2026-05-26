@@ -99,6 +99,10 @@ app.get("/api/routes", (req, res) => {
     `
     SELECT * FROM ctv_daily_routes
     WHERE route_date = ?
+    AND (
+      status != 'DEPARTED'
+      OR datetime(updated_at) >= datetime('now', '-30 seconds')
+    )
     ORDER BY scheduled_departure_time ASC
     `,
     [todayDate],
