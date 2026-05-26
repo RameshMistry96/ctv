@@ -54,7 +54,7 @@ function CTVBoardPage() {
 
           if (status === "DEPARTED") {
             const seenAt = departedSeenAtRef.current[r.id] || currentTime;
-            return currentTime - seenAt <= departedVisibleTime + 1500;
+            return currentTime - seenAt <= departedVisibleTime + 1000;
           }
 
           return currentTime - updatedTime <= twoMinutes;
@@ -91,7 +91,7 @@ function CTVBoardPage() {
         setTimeout(() => {
           setLeavingRouteIds([]);
           loadRoutes();
-        }, 1500);
+        }, 1000);
       }
 
       setRoutes(cleaned);
