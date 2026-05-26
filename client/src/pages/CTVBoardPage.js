@@ -1,15 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
+import * as motion from "motion/react-client";
+import "animate.css";
 import { API_BASE } from "../config";
 
 const socket = io(API_BASE);
+
+const spring = {
+  type: "spring",
+  damping: 20,
+  stiffness: 300,
+}; 
 
 function CTVBoardPage() {
   const navigate = useNavigate();
   const [routes, setRoutes] = useState([]);
   const [now, setNow] = useState(new Date());
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [leavingRouteIds, setLeavingRouteIds] = useState([]);
   const tableRef = useRef(null);
 
   const loadRoutes = async () => {
@@ -18,6 +27,7 @@ function CTVBoardPage() {
       const data = await res.json();
 
       const twoMinutes = 2 * 60 * 1000;
+      const departedVisibleTime = 30 * 1000;
       const currentTime = Date.now();
 
       const cleaned = data
@@ -28,6 +38,10 @@ function CTVBoardPage() {
 
           const updatedTime = new Date(r.updated_at || r.created_at || 0).getTime();
           if (!updatedTime) return false;
+
+          if (status === "DEPARTED") {
+            return currentTime - updatedTime <= departedVisibleTime + 1000;
+          }
 
           return currentTime - updatedTime <= twoMinutes;
         })
@@ -48,6 +62,28 @@ function CTVBoardPage() {
             String(b.scheduled_departure_time || "")
           );
         });
+
+      const departingIds = data
+        .filter((r) => {
+          const status = String(r.status || "").toUpperCase();
+          if (status !== "DEPARTED") return false;
+
+          const updatedTime = new Date(r.updated_at || r.created_at || 0).getTime();
+          if (!updatedTime) return false;
+
+          const age = currentTime - updatedTime;
+          return age >= departedVisibleTime && age < departedVisibleTime + 1000;
+        })
+        .map((r) => r.id);
+
+      setLeavingRouteIds(departingIds);
+
+      if (departingIds.length > 0) {
+        setTimeout(() => {
+          setLeavingRouteIds([]);
+          loadRoutes();
+        }, 1000);
+      }
 
       setRoutes(cleaned);
       setLastUpdated(new Date());
@@ -72,7 +108,7 @@ function CTVBoardPage() {
 
     socket.on("routes_updated", loadRoutes);
 
-    const refreshTimer = setInterval(loadRoutes, 60000);
+    const refreshTimer = setInterval(loadRoutes, 1000);
     const clockTimer = setInterval(() => setNow(new Date()), 1000);
 
     return () => {
@@ -81,27 +117,6 @@ function CTVBoardPage() {
       clearInterval(clockTimer);
     };
   }, [navigate]);
-
-  useEffect(() => {
-    const el = tableRef.current;
-    if (!el || routes.length <= 6) return;
-
-    let direction = 1;
-
-    const scrollTimer = setInterval(() => {
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
-        direction = -1;
-      }
-
-      if (el.scrollTop <= 5) {
-        direction = 1;
-      }
-
-      el.scrollTop += direction * 0.7;
-    }, 80);
-
-    return () => clearInterval(scrollTimer);
-  }, [routes]);
 
   const statusCounts = useMemo(() => {
     const counts = {};
@@ -253,7 +268,9 @@ function CTVBoardPage() {
             const isTwoMinuteWarning = isWithinTwoMinuteWarning(route, now);
 
             return (
-              <div
+              <motion.div
+                layout
+                transition={spring}
                 key={route.id}
                 style={{
                   ...rowStyle,
@@ -264,6 +281,8 @@ function CTVBoardPage() {
                       ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
                       : isTwoMinuteWarning
                       ? "rowFadeIn .35s ease both, twoMinuteGlow 1.8s ease-in-out infinite"
+                     : leavingRouteIds.includes(route.id)
+                      ? "animate__animated animate__backOutDown"
                       : "rowFadeIn .35s ease both",
                   animationDelay: `${index * 0.04}s`,
                   borderColor: statusColor(route.status),
@@ -309,7 +328,7 @@ function CTVBoardPage() {
                 </div>
 
                 <div style={noteCellStyle}>{getDisplayNotes(route, now)}</div>
-              </div>
+              </motion.div>
             );
           })
         )}
