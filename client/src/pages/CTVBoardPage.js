@@ -20,6 +20,7 @@ function CTVBoardPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [leavingRouteIds, setLeavingRouteIds] = useState([]);
   const tableRef = useRef(null);
+  const departedSeenAtRef = useRef({});
 
   const loadRoutes = async () => {
     try {
@@ -29,6 +30,18 @@ function CTVBoardPage() {
       const twoMinutes = 2 * 60 * 1000;
       const departedVisibleTime = 30 * 1000;
       const currentTime = Date.now();
+
+      data.forEach((r) => {
+      const status = String(r.status || "").toUpperCase();
+
+      if (status === "DEPARTED") {
+        if (!departedSeenAtRef.current[r.id]) {
+          departedSeenAtRef.current[r.id] = currentTime;
+        }
+      } else {
+        delete departedSeenAtRef.current[r.id];
+      }
+    });
 
       const cleaned = data
         .filter((r) => {
@@ -40,7 +53,8 @@ function CTVBoardPage() {
           if (!updatedTime) return false;
 
           if (status === "DEPARTED") {
-            return currentTime - updatedTime <= departedVisibleTime + 1000;
+            const seenAt = departedSeenAtRef.current[r.id] || currentTime;
+            return currentTime - seenAt <= departedVisibleTime + 1000;
           }
 
           return currentTime - updatedTime <= twoMinutes;
@@ -63,11 +77,11 @@ function CTVBoardPage() {
           const status = String(r.status || "").toUpperCase();
           if (status !== "DEPARTED") return false;
 
-          const updatedTime = new Date(r.updated_at || r.created_at || 0).getTime();
-          if (!updatedTime) return false;
+      const seenAt = departedSeenAtRef.current[r.id];
+      if (!seenAt) return false;
 
-          const age = currentTime - updatedTime;
-          return age >= departedVisibleTime && age < departedVisibleTime + 1000;
+      const age = currentTime - seenAt;
+      return age >= departedVisibleTime && age < departedVisibleTime + 1000;
         })
         .map((r) => r.id);
 
