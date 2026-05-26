@@ -49,11 +49,6 @@ function CTVBoardPage() {
           const aStatus = String(a.status || "").toUpperCase();
           const bStatus = String(b.status || "").toUpperCase();
 
-          const isFinalA = aStatus === "ARRIVED" || aStatus === "DEPARTED";
-          const isFinalB = bStatus === "ARRIVED" || bStatus === "DEPARTED";
-
-          if (isFinalA !== isFinalB) return isFinalA ? 1 : -1;
-
           const aDelayed = aStatus === "DELAYED" ? 0 : 1;
           const bDelayed = bStatus === "DELAYED" ? 0 : 1;
           if (aDelayed !== bDelayed) return aDelayed - bDelayed;
@@ -268,22 +263,26 @@ function CTVBoardPage() {
             const isTwoMinuteWarning = isWithinTwoMinuteWarning(route, now);
 
             return (
-              <motion.div
-                layout
-                transition={spring}
-                key={route.id}
-                style={{
+                  <motion.div
+                    layout
+                    transition={spring}
+                    key={route.id}
+                    className={
+                      leavingRouteIds.includes(route.id)
+                        ? "animate__animated animate__backOutDown"
+                        : ""
+                    }
+                    style={{
                   ...rowStyle,
-                  animation:
-                    route.status === "DELAYED"
-                      ? "rowFadeIn .35s ease both, delayedGlow 2.2s ease-in-out infinite"
-                      : route.status === "CANCELLED"
-                      ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
-                      : isTwoMinuteWarning
-                      ? "rowFadeIn .35s ease both, twoMinuteGlow 1.8s ease-in-out infinite"
-                     : leavingRouteIds.includes(route.id)
-                      ? "animate__animated animate__backOutDown"
-                      : "rowFadeIn .35s ease both",
+                animation: leavingRouteIds.includes(route.id)
+                  ? undefined
+                  : route.status === "DELAYED"
+                  ? "rowFadeIn .35s ease both, delayedGlow 2.2s ease-in-out infinite"
+                  : route.status === "CANCELLED"
+                  ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
+                  : isTwoMinuteWarning
+                  ? "rowFadeIn .35s ease both, twoMinuteGlow 1.8s ease-in-out infinite"
+                  : "rowFadeIn .35s ease both",
                   animationDelay: `${index * 0.04}s`,
                   borderColor: statusColor(route.status),
                   background: rowBackground(route.status),
