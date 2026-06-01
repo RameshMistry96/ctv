@@ -24,7 +24,7 @@ function CTVBoardPage() {
 
   const loadRoutes = async () => {
     try {
-      const res = await fetch(`/api/ctv/api/routes`);
+      const res = await fetch(`/api/ctv/api/routes?view=tv`);
       const data = await res.json();
 
       const twoMinutes = 2 * 60 * 1000;

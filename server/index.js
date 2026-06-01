@@ -93,27 +93,32 @@ app.get("/", (req, res) => {
 
 // Get all routes
   app.get("/api/routes", (req, res) => {
-  const todayDate = getLocalTodayDate();
+    const todayDate = getLocalTodayDate();
+    const isTvView = req.query.view === "tv";
 
-  autoUpdateDelays(() => {
-    db.all(
-    `
-    SELECT * FROM ctv_daily_routes
-    WHERE route_date = ?
-    AND (
-      status != 'DEPARTED'
-      OR datetime(updated_at) >= datetime('now', '-15 seconds')
-    )
-    ORDER BY scheduled_departure_time ASC
-    `,
-    [todayDate],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    }
-    );
+    autoUpdateDelays(() => {
+      db.all(
+        `
+        SELECT * FROM ctv_daily_routes
+        WHERE route_date = ?
+        ${
+          isTvView
+            ? `AND (
+                status != 'DEPARTED'
+                OR datetime(updated_at) >= datetime('now', '-15 seconds')
+              )`
+            : ""
+        }
+        ORDER BY scheduled_departure_time ASC
+        `,
+        [todayDate],
+        (err, rows) => {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json(rows);
+        }
+      );
+    });
   });
-});
 
 // Add new route
 app.post("/api/routes", (req, res) => {
