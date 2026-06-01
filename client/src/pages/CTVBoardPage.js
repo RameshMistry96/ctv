@@ -28,7 +28,7 @@ function CTVBoardPage() {
       const data = await res.json();
 
       const twoMinutes = 2 * 60 * 1000;
-      const departedVisibleTime = 30 * 1000;
+      const departedVisibleTime = 15 * 1000;
       const currentTime = Date.now();
 
       data.forEach((r) => {
@@ -54,7 +54,7 @@ function CTVBoardPage() {
 
           if (status === "DEPARTED") {
             const seenAt = departedSeenAtRef.current[r.id] || currentTime;
-            return currentTime - seenAt <= departedVisibleTime + 1000;
+            return currentTime - seenAt <= departedVisibleTime + 500;
           }
 
           return currentTime - updatedTime <= twoMinutes;
@@ -81,7 +81,7 @@ function CTVBoardPage() {
       if (!seenAt) return false;
 
       const age = currentTime - seenAt;
-      return age >= departedVisibleTime && age < departedVisibleTime + 1000;
+      return age >= departedVisibleTime && age < departedVisibleTime + 500;
         })
         .map((r) => r.id);
 

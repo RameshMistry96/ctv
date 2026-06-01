@@ -43,7 +43,7 @@ function autoUpdateDelays(callback) {
     `
     SELECT * FROM ctv_daily_routes
     WHERE route_date = ?
-    AND status NOT IN ('ARRIVED', 'DEPARTED', 'CANCELLED', 'ENROUTE')
+    AND status IN ('ON TIME', 'NOT STARTED')
     `,
     [todayDate],
     (err, rows) => {
@@ -92,16 +92,17 @@ app.get("/", (req, res) => {
 });
 
 // Get all routes
-app.get("/api/routes", (req, res) => {
+  app.get("/api/routes", (req, res) => {
   const todayDate = getLocalTodayDate();
 
-  db.all(
+  autoUpdateDelays(() => {
+    db.all(
     `
     SELECT * FROM ctv_daily_routes
     WHERE route_date = ?
     AND (
       status != 'DEPARTED'
-      OR datetime(updated_at) >= datetime('now', '-35 seconds')
+      OR datetime(updated_at) >= datetime('now', '-15 seconds')
     )
     ORDER BY scheduled_departure_time ASC
     `,
@@ -110,7 +111,8 @@ app.get("/api/routes", (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     }
-  );
+    );
+  });
 });
 
 // Add new route
