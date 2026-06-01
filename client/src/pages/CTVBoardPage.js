@@ -144,8 +144,19 @@ function CTVBoardPage() {
         }
 
         @keyframes delayedGlow {
-          0%, 100% { box-shadow: inset 0 0 0 rgba(249,115,22,0), 0 0 0 rgba(249,115,22,0); }
-          50% { box-shadow: inset 0 0 28px rgba(249,115,22,.20), 0 0 24px rgba(249,115,22,.22); }
+          0%, 100% {
+            box-shadow:
+              inset 0 0 0 rgba(249,115,22,0),
+              0 0 0 rgba(249,115,22,0);
+            filter: brightness(1);
+          }
+
+          50% {
+            box-shadow:
+              inset 0 0 60px rgba(249,115,22,.22),
+              0 0 30px rgba(249,115,22,.25);
+            filter: brightness(1.08);
+          }
         }
 
         @keyframes cancelledGlow {
@@ -291,7 +302,7 @@ function CTVBoardPage() {
                 animation: leavingRouteIds.includes(route.id)
                   ? undefined
                   : route.status === "DELAYED"
-                  ? "rowFadeIn .35s ease both, delayedGlow 2.2s ease-in-out infinite"
+                  ? "rowFadeIn .35s ease both, delayedGlow 3s ease-in-out infinite"
                   : route.status === "CANCELLED"
                   ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
                   : isTwoMinuteWarning
