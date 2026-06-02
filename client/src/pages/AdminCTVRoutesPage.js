@@ -27,6 +27,7 @@ function AdminCTVRoutesPage() {
   const [form, setForm] = useState({
     route_number: "",
     destination: "",
+    door_number: "",
     scheduled_departure_time: "",
     route_type: "OUTBOUND",
     status: "NOT STARTED",
@@ -97,6 +98,7 @@ function AdminCTVRoutesPage() {
       setForm({
         route_number: "",
         destination: "",
+        door_number: "",
         scheduled_departure_time: "",
         route_type: "OUTBOUND",
         status: "NOT STARTED",
@@ -236,6 +238,15 @@ function AdminCTVRoutesPage() {
           onChange={handleChange}
           placeholder="e.g. YMX"
         />
+
+        <label style={labelStyle}>Door Number</label>
+          <input
+            style={inputStyle}
+            name="door_number"
+            value={form.door_number}
+            onChange={handleChange}
+            placeholder="e.g. 12"
+          />
 
         <label style={labelStyle}>Route Type</label>
         <select
@@ -423,6 +434,7 @@ function AdminCTVRoutesPage() {
 
                       <div style={metaRowStyle} className="ctv-meta-row">
                         <span>⌖ Destination: {route.destination}</span>
+                        <span>🚪 Door: {route.door_number || "--"}</span>
                         <span>
                           ◷ {getTimeLabel(route)}: {route.scheduled_departure_time}
                         </span>
@@ -811,7 +823,7 @@ const statusBadgeStyle = {
 
 const metaRowStyle = {
   display: "grid",
-  gridTemplateColumns: "1.1fr 1fr .8fr 1.4fr",
+  gridTemplateColumns: "1.1fr .7fr 1fr .8fr 1.4fr",
   gap: 12,
   color: "#475569",
   fontSize: 13,

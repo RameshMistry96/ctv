@@ -18,6 +18,7 @@ function AdminCTVTemplatePage() {
     day_of_week: "Monday",
     route_number: "",
     destination: "",
+    door_number: "",
     scheduled_departure_time: "",
     route_type: "OUTBOUND",
     default_status: "ON TIME",
@@ -92,6 +93,7 @@ function AdminCTVTemplatePage() {
       day_of_week: "Monday",
       route_number: "",
       destination: "",
+      door_number: "",
       scheduled_departure_time: "",
       route_type: "OUTBOUND",
       default_status: "ON TIME",
@@ -144,6 +146,7 @@ function AdminCTVTemplatePage() {
       day_of_week: route.day_of_week,
       route_number: route.route_number,
       destination: route.destination,
+      door_number: route.door_number || "",
       scheduled_departure_time: route.scheduled_departure_time,
       route_type: route.route_type || "OUTBOUND",
       default_status: route.default_status || "ON TIME",
@@ -202,6 +205,15 @@ function AdminCTVTemplatePage() {
 
         <label style={label}>Destination</label>
         <input name="destination" value={form.destination} onChange={handleChange} placeholder="e.g. YMX" style={input} />
+
+        <label style={label}>Door Number</label>
+        <input
+          name="door_number"
+          value={form.door_number}
+          onChange={handleChange}
+          placeholder="e.g. 12"
+          style={input}
+        />
 
         <label style={label}>Route Type</label>
         <select name="route_type" value={form.route_type} onChange={handleChange} style={input}>
@@ -343,10 +355,15 @@ function AdminCTVTemplatePage() {
                         <div key={r.id} style={routeRow} className="tpl-route-row">
                           <div style={routeInfo}>
                             <strong style={routeTitle}>{r.route_number} <span style={arrow}>→</span> {r.destination}</strong>
-                            <div style={timeText}>
-                              {getTimeLabel(r)}: {r.scheduled_departure_time}
-                              <span style={statusPill}>{r.default_status}</span>
-                            </div>
+                          <div style={timeText}>
+                            {r.door_number && (
+                              <span style={doorPill}>Door {r.door_number}</span>
+                            )}
+
+                            {getTimeLabel(r)}: {r.scheduled_departure_time}
+
+                            <span style={statusPill}>{r.default_status}</span>
+                          </div>
                           </div>
 
                           <div style={actionRow}>
@@ -628,6 +645,15 @@ const routeInfo = { display: "flex", flexDirection: "column", gap: 6 };
 const routeTitle = { fontSize: 17 };
 const arrow = { color: "#94a3b8", margin: "0 6px" };
 const timeText = { color: "#334155", fontWeight: "800", display: "flex", alignItems: "center", gap: 10 };
+
+const doorPill = {
+  background: "#ede9fe",
+  color: "#6d28d9",
+  borderRadius: 999,
+  padding: "4px 9px",
+  fontSize: 11,
+  fontWeight: 900,
+};
 
 const statusPill = {
   background: "#dcfce7",

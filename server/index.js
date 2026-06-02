@@ -101,33 +101,33 @@ app.get("/", (req, res) => {
 });
 
 // Get all routes
-  app.get("/api/routes", (req, res) => {
-    const todayDate = getLocalTodayDate();
-    const isTvView = req.query.view === "tv";
+app.get("/api/routes", (req, res) => {
+  const todayDate = getLocalTodayDate();
+  const isTvView = req.query.view === "tv";
 
-    autoUpdateDelays(() => {
-      db.all(
-        `
-        SELECT * FROM ctv_daily_routes
-        WHERE route_date = ?
-        ${
-          isTvView
-            ? `AND (
-                status != 'DEPARTED'
-                OR datetime(updated_at) >= datetime('now', '-15 seconds')
-              )`
-            : ""
-        }
-        ORDER BY scheduled_departure_time ASC
-        `,
-        [todayDate],
-        (err, rows) => {
-          if (err) return res.status(500).json({ error: err.message });
-          res.json(rows);
-        }
-      );
-    });
+  autoUpdateDelays(() => {
+    db.all(
+      `
+      SELECT * FROM ctv_daily_routes
+      WHERE route_date = ?
+      ${
+        isTvView
+          ? `AND (
+              status != 'DEPARTED'
+              OR datetime(updated_at) >= datetime('now', '-15 seconds')
+            )`
+          : ""
+      }
+      ORDER BY scheduled_departure_time ASC
+      `,
+      [todayDate],
+      (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+      }
+    );
   });
+});
 
 // Add new route
 app.post("/api/routes", (req, res) => {
@@ -138,6 +138,7 @@ app.post("/api/routes", (req, res) => {
     route_type,
     status,
     delay_minutes,
+    door_number,
     notes,
   } = req.body;
 
@@ -152,8 +153,8 @@ app.post("/api/routes", (req, res) => {
   db.run(
     `
     INSERT INTO ctv_daily_routes 
-    (route_date, route_number, destination, scheduled_departure_time, route_type, status, delay_minutes, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (route_date, route_number, destination, scheduled_departure_time, route_type, status, delay_minutes, door_number, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       today,
@@ -163,6 +164,7 @@ app.post("/api/routes", (req, res) => {
       route_type || "OUTBOUND",
       status || "ON TIME",
       delay_minutes || 0,
+      door_number || "",
       notes || "",
     ],
     function (err) {
@@ -189,6 +191,7 @@ app.patch("/api/routes/:id", (req, res) => {
     route_type,
     status,
     delay_minutes,
+    door_number,
     notes,
   } = req.body;
 
@@ -212,6 +215,7 @@ app.patch("/api/routes/:id", (req, res) => {
       route_type = COALESCE(?, route_type),
       status = COALESCE(?, status),
       delay_minutes = COALESCE(?, delay_minutes),
+      door_number = COALESCE(?, door_number),
       notes = COALESCE(?, notes),
       actual_departure_time = COALESCE(?, actual_departure_time),
       updated_at = CURRENT_TIMESTAMP
@@ -224,6 +228,7 @@ app.patch("/api/routes/:id", (req, res) => {
       route_type,
       status,
       delay_minutes,
+      door_number,
       notes,
       actual_departure_time,
       id,
@@ -274,6 +279,7 @@ app.post("/api/templates", (req, res) => {
     scheduled_departure_time,
     route_type,
     default_status,
+    door_number,
   } = req.body;
 
   if (!day_of_week || !route_number || !destination || !scheduled_departure_time) {
@@ -285,8 +291,8 @@ app.post("/api/templates", (req, res) => {
   db.run(
     `
     INSERT INTO ctv_route_templates
-    (day_of_week, route_number, destination, scheduled_departure_time, route_type, default_status)
-    VALUES (?, ?, ?, ?, ?, ?)
+    (day_of_week, route_number, destination, scheduled_departure_time, route_type, default_status, door_number)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
     [
       day_of_week,
@@ -295,6 +301,7 @@ app.post("/api/templates", (req, res) => {
       scheduled_departure_time,
       route_type || "OUTBOUND",
       default_status || "ON TIME",
+      door_number || "",
     ],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -319,6 +326,7 @@ app.patch("/api/templates/:id", (req, res) => {
     scheduled_departure_time,
     route_type,
     default_status,
+    door_number,
   } = req.body;
 
   const todayDate = getLocalTodayDate();
@@ -332,7 +340,8 @@ app.patch("/api/templates/:id", (req, res) => {
       destination = COALESCE(?, destination),
       scheduled_departure_time = COALESCE(?, scheduled_departure_time),
       route_type = COALESCE(?, route_type),
-      default_status = COALESCE(?, default_status)
+      default_status = COALESCE(?, default_status),
+      door_number = COALESCE(?, door_number)
     WHERE id = ?
     `,
     [
@@ -342,6 +351,7 @@ app.patch("/api/templates/:id", (req, res) => {
       scheduled_departure_time,
       route_type,
       default_status,
+      door_number,
       id,
     ],
     function (err) {
@@ -360,6 +370,7 @@ app.patch("/api/templates/:id", (req, res) => {
             scheduled_departure_time = ?,
             route_type = ?,
             status = ?,
+            door_number = ?,
             updated_at = CURRENT_TIMESTAMP
           WHERE route_template_id = ?
           AND route_date = ?
@@ -371,6 +382,7 @@ app.patch("/api/templates/:id", (req, res) => {
             template.scheduled_departure_time,
             template.route_type || "OUTBOUND",
             template.default_status || "ON TIME",
+            template.door_number || "",
             id,
             todayDate,
           ],
@@ -473,8 +485,8 @@ app.post("/api/routes/load-today", (req, res) => {
 
           const stmt = db.prepare(`
             INSERT OR IGNORE INTO ctv_daily_routes
-            (route_template_id, route_date, route_number, destination, scheduled_departure_time, route_type, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (route_template_id, route_date, route_number, destination, scheduled_departure_time, route_type, status, door_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
           missingTemplates.forEach((t) => {
@@ -486,6 +498,7 @@ app.post("/api/routes/load-today", (req, res) => {
               t.scheduled_departure_time,
               t.route_type || "OUTBOUND",
               t.default_status || "ON TIME",
+              t.door_number || "",
             ]);
           });
 

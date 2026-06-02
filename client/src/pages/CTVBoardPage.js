@@ -272,6 +272,7 @@ function CTVBoardPage() {
           <div>◷ ARRIVE / DEPART</div>
           <div>✈ ROUTE</div>
           <div>⌖ DESTINATION</div>
+          <div>🚪 DOOR</div>
           <div>◉ STATUS</div>
           <div>◷ DELAY</div>
           <div>▤ NOTES / COMMENT</div>
@@ -319,13 +320,18 @@ function CTVBoardPage() {
                 <div style={routeCellStyle}>
                   {route.route_number} <span style={arrowStyle}>→</span>
                 </div>
+                  <div style={destinationCellStyle}>
+                    {route.destination}
+                  </div>
 
-                <div style={destinationCellStyle}>
-                  {route.destination}
-                </div>
+                  <div>
+                    <span style={doorBadgeStyle}>
+                      {route.door_number || "--"}
+                    </span>
+                  </div>
 
-                <div>
-                  <span
+                  <div>
+                    <span
                     style={{
                       ...statusBadgeStyle,
                       background: statusColor(route.status),
@@ -632,17 +638,18 @@ const tableStyle = {
 
 const tableHeaderStyle = {
   display: "grid",
-  gridTemplateColumns: "1.1fr 2fr 2fr 1.4fr 1fr 2fr",
+  gridTemplateColumns: "1.1fr 1.25fr 1.55fr .65fr 1.4fr 1fr 2.2fr",
   background: "linear-gradient(90deg,#0f3b70,#082f5f)",
   color: "#dbeafe",
   fontWeight: 900,
   fontSize: 16,
   padding: "15px 20px",
+  justifyItems: "start",
 };
 
 const rowStyle = {
   display: "grid",
-  gridTemplateColumns: "1.1fr 2fr 2fr 1.4fr 1fr 2fr",
+  gridTemplateColumns: "1.1fr 1.25fr 1.55fr .65fr 1.4fr 1fr 2.2fr",
   alignItems: "center",
   minHeight: 70,
   padding: "0 20px",
@@ -702,6 +709,20 @@ const arrowStyle = { color: "#93c5fd", margin: "0 13px" };
 const destinationCellStyle = {
   fontSize: 23,
   fontWeight: 950,
+};
+
+const doorBadgeStyle = {
+  display: "inline-block",
+  minWidth: 44,
+  textAlign: "center",
+  padding: "8px 14px",
+  borderRadius: 8,
+  fontWeight: 950,
+  fontSize: 16,
+  background: "#6d28d9",
+  color: "white",
+  border: "1px solid rgba(255,255,255,.18)",
+  boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)",
 };
 
 const statusBadgeStyle = {

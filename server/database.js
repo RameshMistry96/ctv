@@ -18,6 +18,7 @@ db.serialize(() => {
       scheduled_departure_time TEXT NOT NULL,
       route_type TEXT DEFAULT 'OUTBOUND',
       default_status TEXT DEFAULT 'ON TIME',
+      door_number TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -34,13 +35,27 @@ db.serialize(() => {
       actual_departure_time TEXT,
       status TEXT DEFAULT 'ON TIME',
       delay_minutes INTEGER DEFAULT 0,
+      door_number TEXT,
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // ✅ Add route_type column to old existing database if missing
+  // ✅ Add missing columns to old existing database if missing
+
+  db.run(`ALTER TABLE ctv_route_templates ADD COLUMN door_number TEXT`, (err) => {
+  if (err && !err.message.includes("duplicate column name")) {
+    console.error("Template door_number migration error:", err.message);
+  }
+});
+
+db.run(`ALTER TABLE ctv_daily_routes ADD COLUMN door_number TEXT`, (err) => {
+  if (err && !err.message.includes("duplicate column name")) {
+    console.error("Daily door_number migration error:", err.message);
+  }
+});
+
   db.run(`ALTER TABLE ctv_route_templates ADD COLUMN route_type TEXT DEFAULT 'OUTBOUND'`, (err) => {
     if (err && !err.message.includes("duplicate column name")) {
       console.error("Template route_type migration error:", err.message);
