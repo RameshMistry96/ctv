@@ -638,7 +638,7 @@ const tableStyle = {
 
 const tableHeaderStyle = {
   display: "grid",
-  gridTemplateColumns: "1.1fr 1.25fr 1.55fr .65fr 1.4fr 1fr 2.2fr",
+  gridTemplateColumns: "1.1fr 1.25fr 1.65fr .85fr 1.25fr 1fr 2.2fr",
   background: "linear-gradient(90deg,#0f3b70,#082f5f)",
   color: "#dbeafe",
   fontWeight: 900,
@@ -649,7 +649,7 @@ const tableHeaderStyle = {
 
 const rowStyle = {
   display: "grid",
-  gridTemplateColumns: "1.1fr 1.25fr 1.55fr .65fr 1.4fr 1fr 2.2fr",
+ gridTemplateColumns: "1.1fr 1.25fr 1.65fr .85fr 1.25fr 1fr 2.2fr",
   alignItems: "center",
   minHeight: 70,
   padding: "0 20px",
