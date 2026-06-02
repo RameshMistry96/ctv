@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 
@@ -13,6 +13,8 @@ function AdminCTVTemplatePage() {
   const [viewMode, setViewMode] = useState("list");
   const [openDays, setOpenDays] = useState({});
   const [showMobileForm, setShowMobileForm] = useState(false);
+  const didSetDefaultOpenDay = useRef(false);
+  const lastEditedDayRef = useRef(null);
 
   const [form, setForm] = useState({
     day_of_week: "Monday",
@@ -58,11 +60,19 @@ function AdminCTVTemplatePage() {
   }, [navigate]);
 
   useEffect(() => {
+    if (didSetDefaultOpenDay.current) return;
+
+    const todayName = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
     const nextOpen = {};
     DAYS.forEach((day) => {
-      nextOpen[day] = templates.some((t) => t.day_of_week === day);
+      nextOpen[day] = day === todayName;
     });
+
     setOpenDays(nextOpen);
+    didSetDefaultOpenDay.current = true;
   }, [templates]);
 
   const stats = useMemo(() => {
@@ -131,8 +141,25 @@ function AdminCTVTemplatePage() {
           : "Weekly route saved successfully"
       );
 
+      const dayToReturn = form.day_of_week;
+
       resetForm();
-      loadTemplates();
+      await loadTemplates();
+
+      setOpenDays(() => {
+        const nextOpen = {};
+        DAYS.forEach((day) => {
+          nextOpen[day] = day === dayToReturn;
+        });
+        return nextOpen;
+      });
+
+      setTimeout(() => {
+        document.getElementById(`day-${dayToReturn}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
     } catch (err) {
       setMessage("Failed to save weekly route");
     }
@@ -140,6 +167,7 @@ function AdminCTVTemplatePage() {
 
   const startEdit = (route) => {
     setEditingId(route.id);
+    lastEditedDayRef.current = route.day_of_week;
     setMessage("");
     setShowMobileForm(true);
     setForm({
@@ -179,12 +207,19 @@ function AdminCTVTemplatePage() {
   };
 
   const toggleDay = (day) => {
-    setOpenDays((prev) => ({
-      ...prev,
-      [day]: !prev[day],
-    }));
-  };
+    setOpenDays((prev) => {
+      const isAlreadyOpen = !!prev[day];
 
+      const nextOpen = {};
+      DAYS.forEach((d) => {
+        nextOpen[d] = false;
+      });
+
+      nextOpen[day] = !isAlreadyOpen;
+      return nextOpen;
+    });
+  };
+  
   const FormCard = (mobile = false) => (
     <div style={mobile ? mobileFormCard : card}>
       <div style={cardHeader}>
@@ -339,7 +374,7 @@ function AdminCTVTemplatePage() {
               const shortDay = day.slice(0, 3).toUpperCase();
 
               return (
-                <div key={day} style={dayBlock}>
+                <div key={day} id={`day-${day}`} style={dayBlock}>
                   <div style={dayHeader} className="tpl-day-header" onClick={() => toggleDay(day)}>
                     <span style={dayPill}>{shortDay}</span>
                     <strong style={dayName}>{day}</strong>
