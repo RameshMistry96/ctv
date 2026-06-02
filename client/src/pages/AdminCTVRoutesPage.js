@@ -361,7 +361,14 @@ function AdminCTVRoutesPage() {
               </div>
 
               {routes.map((route) => (
-                <div key={route.id} style={routeCardStyle} className="ctv-route-card">
+                <div key={route.id} style={{
+                      ...routeCardStyle,
+                      opacity: route.status === "DEPARTED" ? 0.72 : 1,
+                      background:
+                        route.status === "DEPARTED"
+                          ? "#f1f5f9"
+                          : routeCardStyle.background,
+                    }} className="ctv-route-card">
                   <div style={actionTopStyle} className="ctv-action-top">
                     <button onClick={() => openDelayModal(route)} style={delayTopButtonStyle}>
                       ✎ Delay / Notes
@@ -394,6 +401,26 @@ function AdminCTVRoutesPage() {
                         </span>
                       </div>
 
+                      {route.status === "DEPARTED" && (
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            marginBottom: 14,
+                            padding: "8px 14px",
+                            borderRadius: 999,
+                            background: "#334155",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 900,
+                            letterSpacing: ".04em",
+                          }}
+                        >
+                          📺 HIDDEN FROM TV DISPLAY
+                        </div>
+                      )}
+
                       <div style={metaRowStyle} className="ctv-meta-row">
                         <span>⌖ Destination: {route.destination}</span>
                         <span>
@@ -421,6 +448,12 @@ function AdminCTVRoutesPage() {
                                 route.status === status
                                   ? statusSoftBg(status)
                                   : "white",
+
+                              boxShadow:
+                                route.status === "DEPARTED" &&
+                                status === "DEPARTED"
+                                  ? "0 0 0 2px #334155"
+                                  : "none",
                             }}
                           >
                             {status}
