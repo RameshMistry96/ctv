@@ -63,10 +63,6 @@ function CTVBoardPage() {
           const aStatus = String(a.status || "").toUpperCase();
           const bStatus = String(b.status || "").toUpperCase();
 
-          const aDelayed = aStatus === "DELAYED" ? 0 : 1;
-          const bDelayed = bStatus === "DELAYED" ? 0 : 1;
-          if (aDelayed !== bDelayed) return aDelayed - bDelayed;
-
           return String(a.scheduled_departure_time || "").localeCompare(
             String(b.scheduled_departure_time || "")
           );
@@ -301,7 +297,7 @@ function CTVBoardPage() {
                   ...rowStyle,
                 animation: leavingRouteIds.includes(route.id)
                   ? undefined
-                  : route.status === "DELAYED"
+                  : getAutoDelayMinutes(route, now) > 0
                   ? "rowFadeIn .35s ease both, delayedGlow 3s ease-in-out infinite"
                   : route.status === "CANCELLED"
                   ? "rowFadeIn .35s ease both, cancelledGlow 2.4s ease-in-out infinite"
