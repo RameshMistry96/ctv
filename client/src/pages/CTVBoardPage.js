@@ -317,8 +317,7 @@ function CTVBoardPage() {
                 </div>
 
                 <div style={routeCellStyle}>
-                  {route.route_number} <span style={arrowStyle}>→</span>{" "}
-                  {route.destination}
+                  {route.route_number} <span style={arrowStyle}>→</span>
                 </div>
 
                 <div style={destinationCellStyle}>
