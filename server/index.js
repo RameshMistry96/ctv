@@ -29,10 +29,19 @@ function getDelayMinutes(routeDate, scheduledTime) {
   if (!routeDate || !scheduledTime) return 0;
 
   const cleanTime = String(scheduledTime || "").trim();
-  const scheduled = new Date(`${routeDate}T${cleanTime}:00`);
-  const now = new Date();
+  const [scheduledHour, scheduledMinute] = cleanTime.split(":").map(Number);
 
-  const diff = Math.floor((now - scheduled) / 60000);
+  if (Number.isNaN(scheduledHour) || Number.isNaN(scheduledMinute)) return 0;
+
+  const torontoNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Toronto" })
+  );
+
+  const nowMinutes = torontoNow.getHours() * 60 + torontoNow.getMinutes();
+  const scheduledMinutes = scheduledHour * 60 + scheduledMinute;
+
+  const diff = nowMinutes - scheduledMinutes;
+
   return diff > 0 ? diff : 0;
 }
 
