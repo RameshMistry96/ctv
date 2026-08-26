@@ -25,6 +25,15 @@ function getLocalTodayDate() {
   }).format(now);
 }
 
+function getLocalCurrentTime() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+}
+
 function getDelayMinutes(routeDate, scheduledTime) {
   if (!routeDate || !scheduledTime) return 0;
 
@@ -170,12 +179,16 @@ app.post("/api/routes", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
-      db.get("SELECT * FROM ctv_daily_routes WHERE id = ?", [this.lastID], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
+      db.get(
+        "SELECT * FROM ctv_daily_routes WHERE id = ?",
+        [this.lastID],
+        (err, row) => {
+          if (err) return res.status(500).json({ error: err.message });
 
-        io.emit("routes_updated");
-        res.status(201).json(row);
-      });
+          io.emit("routes_updated");
+          res.status(201).json(row);
+        }
+      );
     }
   );
 });
@@ -195,55 +208,76 @@ app.patch("/api/routes/:id", (req, res) => {
     notes,
   } = req.body;
 
-  const actual_departure_time =
-    status === "DEPARTED"
-      ? new Intl.DateTimeFormat("en-CA", {
-          timeZone: "America/Toronto",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }).format(new Date())
-      : null;
+  db.get("SELECT * FROM ctv_daily_routes WHERE id = ?", [id], (err, existingRoute) => {
+    if (err) return res.status(500).json({ error: err.message });
 
-  db.run(
-    `
-    UPDATE ctv_daily_routes
-    SET
-      route_number = COALESCE(?, route_number),
-      destination = COALESCE(?, destination),
-      scheduled_departure_time = COALESCE(?, scheduled_departure_time),
-      route_type = COALESCE(?, route_type),
-      status = COALESCE(?, status),
-      delay_minutes = COALESCE(?, delay_minutes),
-      door_number = COALESCE(?, door_number),
-      notes = COALESCE(?, notes),
-      actual_departure_time = COALESCE(?, actual_departure_time),
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-    `,
-    [
-      route_number,
-      destination,
-      scheduled_departure_time,
-      route_type,
-      status,
-      delay_minutes,
-      door_number,
-      notes,
-      actual_departure_time,
-      id,
-    ],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+    if (!existingRoute) {
+      return res.status(404).json({ error: "Route not found" });
+    }
 
-      db.get("SELECT * FROM ctv_daily_routes WHERE id = ?", [id], (err, row) => {
+    const effectiveRouteType = String(
+      route_type || existingRoute.route_type || "OUTBOUND"
+    ).toUpperCase();
+
+    let actual_departure_time = null;
+    let actual_arrival_time = null;
+
+    // ✅ Departure only
+    if (effectiveRouteType === "OUTBOUND" && status === "DEPARTED") {
+      actual_departure_time = getLocalCurrentTime();
+    }
+
+    // ✅ Arrival only
+    if (effectiveRouteType === "INBOUND" && status === "ARRIVED") {
+      actual_arrival_time = getLocalCurrentTime();
+    }
+
+    db.run(
+      `
+      UPDATE ctv_daily_routes
+      SET
+        route_number = COALESCE(?, route_number),
+        destination = COALESCE(?, destination),
+        scheduled_departure_time = COALESCE(?, scheduled_departure_time),
+        route_type = COALESCE(?, route_type),
+        status = COALESCE(?, status),
+        delay_minutes = COALESCE(?, delay_minutes),
+        door_number = COALESCE(?, door_number),
+        notes = COALESCE(?, notes),
+        actual_departure_time = COALESCE(?, actual_departure_time),
+        actual_arrival_time = COALESCE(?, actual_arrival_time),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [
+        route_number,
+        destination,
+        scheduled_departure_time,
+        route_type,
+        status,
+        delay_minutes,
+        door_number,
+        notes,
+        actual_departure_time,
+        actual_arrival_time,
+        id,
+      ],
+      function (err) {
         if (err) return res.status(500).json({ error: err.message });
 
-        io.emit("routes_updated");
-        res.json(row);
-      });
-    }
-  );
+        db.get(
+          "SELECT * FROM ctv_daily_routes WHERE id = ?",
+          [id],
+          (err, row) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            io.emit("routes_updated");
+            res.json(row);
+          }
+        );
+      }
+    );
+  });
 });
 
 // Delete route
@@ -306,11 +340,15 @@ app.post("/api/templates", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
-      db.get("SELECT * FROM ctv_route_templates WHERE id = ?", [this.lastID], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
+      db.get(
+        "SELECT * FROM ctv_route_templates WHERE id = ?",
+        [this.lastID],
+        (err, row) => {
+          if (err) return res.status(500).json({ error: err.message });
 
-        res.status(201).json(row);
-      });
+          res.status(201).json(row);
+        }
+      );
     }
   );
 });
@@ -357,43 +395,50 @@ app.patch("/api/templates/:id", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
-      db.get("SELECT * FROM ctv_route_templates WHERE id = ?", [id], (err, template) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!template) return res.status(404).json({ error: "Template not found" });
+      db.get(
+        "SELECT * FROM ctv_route_templates WHERE id = ?",
+        [id],
+        (err, template) => {
+          if (err) return res.status(500).json({ error: err.message });
 
-        db.run(
-          `
-          UPDATE ctv_daily_routes
-          SET
-            route_number = ?,
-            destination = ?,
-            scheduled_departure_time = ?,
-            route_type = ?,
-            status = ?,
-            door_number = ?,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE route_template_id = ?
-          AND route_date = ?
-          AND status != 'DEPARTED'
-          `,
-          [
-            template.route_number,
-            template.destination,
-            template.scheduled_departure_time,
-            template.route_type || "OUTBOUND",
-            template.default_status || "ON TIME",
-            template.door_number || "",
-            id,
-            todayDate,
-          ],
-          function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-
-            io.emit("routes_updated");
-            res.json(template);
+          if (!template) {
+            return res.status(404).json({ error: "Template not found" });
           }
-        );
-      });
+
+          db.run(
+            `
+            UPDATE ctv_daily_routes
+            SET
+              route_number = ?,
+              destination = ?,
+              scheduled_departure_time = ?,
+              route_type = ?,
+              status = ?,
+              door_number = ?,
+              updated_at = CURRENT_TIMESTAMP
+            WHERE route_template_id = ?
+            AND route_date = ?
+            AND status != 'DEPARTED'
+            `,
+            [
+              template.route_number,
+              template.destination,
+              template.scheduled_departure_time,
+              template.route_type || "OUTBOUND",
+              template.default_status || "ON TIME",
+              template.door_number || "",
+              id,
+              todayDate,
+            ],
+            function (err) {
+              if (err) return res.status(500).json({ error: err.message });
+
+              io.emit("routes_updated");
+              res.json(template);
+            }
+          );
+        }
+      );
     }
   );
 });
@@ -469,7 +514,8 @@ app.post("/api/routes/load-today", (req, res) => {
                 route.route_template_id === template.id ||
                 (route.route_number === template.route_number &&
                   route.destination === template.destination &&
-                  route.scheduled_departure_time === template.scheduled_departure_time)
+                  route.scheduled_departure_time ===
+                    template.scheduled_departure_time)
               );
             });
           });

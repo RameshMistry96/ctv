@@ -32,7 +32,10 @@ db.serialize(() => {
       destination TEXT NOT NULL,
       scheduled_departure_time TEXT NOT NULL,
       route_type TEXT DEFAULT 'OUTBOUND',
+
       actual_departure_time TEXT,
+      actual_arrival_time TEXT,
+
       status TEXT DEFAULT 'ON TIME',
       delay_minutes INTEGER DEFAULT 0,
       door_number TEXT,
@@ -44,29 +47,51 @@ db.serialize(() => {
 
   // ✅ Add missing columns to old existing database if missing
 
-  db.run(`ALTER TABLE ctv_route_templates ADD COLUMN door_number TEXT`, (err) => {
-  if (err && !err.message.includes("duplicate column name")) {
-    console.error("Template door_number migration error:", err.message);
-  }
-});
-
-db.run(`ALTER TABLE ctv_daily_routes ADD COLUMN door_number TEXT`, (err) => {
-  if (err && !err.message.includes("duplicate column name")) {
-    console.error("Daily door_number migration error:", err.message);
-  }
-});
-
-  db.run(`ALTER TABLE ctv_route_templates ADD COLUMN route_type TEXT DEFAULT 'OUTBOUND'`, (err) => {
-    if (err && !err.message.includes("duplicate column name")) {
-      console.error("Template route_type migration error:", err.message);
+  db.run(
+    `ALTER TABLE ctv_route_templates ADD COLUMN door_number TEXT`,
+    (err) => {
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error("Template door_number migration error:", err.message);
+      }
     }
-  });
+  );
 
-  db.run(`ALTER TABLE ctv_daily_routes ADD COLUMN route_type TEXT DEFAULT 'OUTBOUND'`, (err) => {
-    if (err && !err.message.includes("duplicate column name")) {
-      console.error("Daily route_type migration error:", err.message);
+  db.run(
+    `ALTER TABLE ctv_daily_routes ADD COLUMN door_number TEXT`,
+    (err) => {
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error("Daily door_number migration error:", err.message);
+      }
     }
-  });
+  );
+
+  db.run(
+    `ALTER TABLE ctv_route_templates ADD COLUMN route_type TEXT DEFAULT 'OUTBOUND'`,
+    (err) => {
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error("Template route_type migration error:", err.message);
+      }
+    }
+  );
+
+  db.run(
+    `ALTER TABLE ctv_daily_routes ADD COLUMN route_type TEXT DEFAULT 'OUTBOUND'`,
+    (err) => {
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error("Daily route_type migration error:", err.message);
+      }
+    }
+  );
+
+  // ✅ New Arrival column for old existing databases
+  db.run(
+    `ALTER TABLE ctv_daily_routes ADD COLUMN actual_arrival_time TEXT`,
+    (err) => {
+      if (err && !err.message.includes("duplicate column name")) {
+        console.error("Daily actual_arrival_time migration error:", err.message);
+      }
+    }
+  );
 
   // Clean duplicate daily routes before adding protection
   db.run(`
