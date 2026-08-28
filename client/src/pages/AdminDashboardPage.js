@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
+import {
+  FiActivity,
+  FiArrowDownLeft,
+  FiArrowRight,
+  FiClock,
+  FiEye,
+  FiMapPin,
+  FiTruck,
+} from "react-icons/fi";
+
+import AdminLayout from "../components/AdminLayout";
 import { API_BASE } from "../config";
 
 const socket = io(API_BASE);
@@ -17,443 +28,864 @@ const STATUSES = [
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
+
   const [routes, setRoutes] = useState([]);
   const [now] = useState(new Date());
 
-  // ✅ Sidebar open / close
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin_auth");
-    navigate("/ctv-admin/login");
-  };
+  /* =====================================================
+     KEEP EXISTING ROUTE LOAD LOGIC
+  ===================================================== */
 
   const loadRoutes = async () => {
     try {
       const res = await fetch(`/api/ctv/api/routes`);
       const data = await res.json();
-      setRoutes(data.filter((r) => r.status !== "DEPARTED"));
+
+      setRoutes(
+        data.filter(
+          (r) => r.status !== "DEPARTED"
+        )
+      );
     } catch (err) {
-      console.error("Failed to load dashboard routes:", err);
+      console.error(
+        "Failed to load dashboard routes:",
+        err
+      );
     }
   };
 
-  useEffect(() => {
-    const isAuth = sessionStorage.getItem("admin_auth");
-    const loginTime = Number(sessionStorage.getItem("admin_login_time"));
-    const eightHours = 8 * 60 * 60 * 1000;
+  /* =====================================================
+     KEEP EXISTING AUTH + SOCKET LOGIC
+  ===================================================== */
 
-    if (!isAuth || !loginTime || Date.now() - loginTime > eightHours) {
-      sessionStorage.removeItem("admin_auth");
-      sessionStorage.removeItem("admin_login_time");
+  useEffect(() => {
+    const isAuth =
+      sessionStorage.getItem("admin_auth");
+
+    const loginTime = Number(
+      sessionStorage.getItem(
+        "admin_login_time"
+      )
+    );
+
+    const eightHours =
+      8 * 60 * 60 * 1000;
+
+    if (
+      !isAuth ||
+      !loginTime ||
+      Date.now() - loginTime > eightHours
+    ) {
+      sessionStorage.removeItem(
+        "admin_auth"
+      );
+
+      sessionStorage.removeItem(
+        "admin_login_time"
+      );
+
       navigate("/ctv-admin/login");
+
       return;
     }
 
     loadRoutes();
 
-    socket.on("routes_updated", loadRoutes);
+    socket.on(
+      "routes_updated",
+      loadRoutes
+    );
 
-    const refreshTimer = setInterval(loadRoutes, 15000);
+    const refreshTimer =
+      setInterval(
+        loadRoutes,
+        15000
+      );
 
     return () => {
-      socket.off("routes_updated", loadRoutes);
-      clearInterval(refreshTimer);
+      socket.off(
+        "routes_updated",
+        loadRoutes
+      );
+
+      clearInterval(
+        refreshTimer
+      );
     };
   }, [navigate]);
 
+  /* =====================================================
+     KEEP EXISTING STATUS COUNTS
+  ===================================================== */
+
   const counts = useMemo(() => {
     const c = {};
+
     routes.forEach((r) => {
-      c[r.status] = (c[r.status] || 0) + 1;
+      c[r.status] =
+        (c[r.status] || 0) + 1;
     });
+
     return c;
   }, [routes]);
 
   const total = routes.length;
 
-  const recentActivities = useMemo(() => {
-    return [...routes]
-      .sort((a, b) => {
-        const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
-        const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
-        return bTime - aTime;
-      })
-      .slice(0, 5)
-      .map((r) => ({
-        text: `Route ${r.route_number} is currently`,
-        status: r.status,
-        time: r.updated_at || r.created_at || "Just now",
-      }));
+  /* =====================================================
+     ROUTE TYPE COUNTS
+  ===================================================== */
+
+  const arrivals = useMemo(() => {
+    return routes.filter(
+      (r) =>
+        getRouteType(r) === "INBOUND"
+    ).length;
   }, [routes]);
 
-  const donutGradient = useMemo(() => {
-    if (!total) return "#e2e8f0";
+  const departures = useMemo(() => {
+    return routes.filter(
+      (r) =>
+        getRouteType(r) === "OUTBOUND"
+    ).length;
+  }, [routes]);
 
-    let start = 0;
+  /* =====================================================
+     KEEP RECENT ACTIVITY LOGIC
+  ===================================================== */
 
-    const parts = STATUSES.map((status) => {
-      const value = counts[status] || 0;
-      if (!value) return null;
+  const recentActivities =
+    useMemo(() => {
+      return [...routes]
+        .sort((a, b) => {
+          const aTime =
+            new Date(
+              a.updated_at ||
+                a.created_at ||
+                0
+            ).getTime();
 
-      const percent = (value / total) * 100;
-      const end = start + percent;
-      const part = `${statusColor(status)} ${start}% ${end}%`;
-      start = end;
-      return part;
-    }).filter(Boolean);
+          const bTime =
+            new Date(
+              b.updated_at ||
+                b.created_at ||
+                0
+            ).getTime();
 
-    return `conic-gradient(${parts.join(", ")})`;
-  }, [counts, total]);
+          return bTime - aTime;
+        })
+        .slice(0, 5);
+    }, [routes]);
 
   return (
-    <div style={page}>
-      <style>{responsiveCss}</style>
+    <AdminLayout>
+      <style>
+        {responsiveCss}
+      </style>
 
-      <aside
-        style={sidebarOpen ? sidebar : sidebarClosed}
-        className={sidebarOpen ? "ctv-sidebar open" : "ctv-sidebar closed"}
+      <div
+        style={pageStyle}
+        className="dashboard-page-scale"
       >
-        <div style={brand}>
-          <button
-            className="ctv-mobile-close"
-            onClick={() => setSidebarOpen(false)}
-          >
-            ✕
-          </button>
-          <div style={brandIcon}>
-            <img
-              src="/favicon.ico"
-              alt="CTV"
-              style={{ width: 34, height: 34, objectFit: "contain" }}
-            />
-          </div>
+        {/* HEADER */}
 
+        <div
+          style={headerStyle}
+          className="dashboard-header"
+        >
           <div>
-            <div style={brandTitle}>CTV SYSTEM</div>
+            <div style={smallTopText}>
+              CTV OPERATIONS
+            </div>
+
+            <h1 style={titleStyle}>
+              Dashboard
+            </h1>
+
+            <p style={subtitleStyle}>
+              Overview of today’s operations
+            </p>
           </div>
-        </div>
 
-        <NavGroup title="MAIN">
-          <NavItem active icon="⌂" text="Dashboard" to="/ctv-admin/dashboard" />
-        </NavGroup>
-
-        <NavGroup title="ROUTE MANAGEMENT">
-          <NavItem icon="☷" text="Admin Routes" to="/ctv-admin" />
-          <NavItem icon="▣" text="Weekly Templates" to="/ctv-admin/templates" />
-        </NavGroup>
-
-        <NavGroup title="SYSTEM">
-          <NavItem icon="⚙" text="Settings" to="/ctv-admin/dashboard" />
-          <NavItem icon="♙" text="Users" to="/ctv-admin/dashboard" />
-        </NavGroup>
-
-        <NavGroup title="OTHER">
-          <NavItem icon="▤" text="Activity Logs" to="/ctv-admin/dashboard" />
-          <button onClick={handleLogout} style={logoutNavItem}>
-            <span style={navIcon}>↪</span>
-            Logout
-          </button>
-        </NavGroup>
-
-        <div style={systemStatus}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={greenDot}></span>
-            <strong>System Status</strong>
-          </div>
-          <div style={systemSub}>All Systems Operational</div>
-        </div>
-      </aside>
-
-      <main style={main}>
-        <header style={topbar}>
-          <button
-            style={hamburger}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            title={sidebarOpen ? "Hide menu" : "Show menu"}
+          <div
+            style={dateBoxStyle}
+            className="dashboard-date"
           >
-            {sidebarOpen ? "✕" : "☰"}
-          </button>
+            <FiClock />
 
-          <div style={topRight}>
-            <div style={bell}>
-              🔔
-              <span style={badge}>
-                {(counts["DELAYED"] || 0) + (counts["CANCELLED"] || 0)}
-              </span>
-            </div>
-            <div style={avatar}>A</div>
-            <strong>Admin User</strong>
-            <span>⌄</span>
-          </div>
-        </header>
-
-        <section style={content} className="ctv-dashboard-content">
-          <div style={titleRow} className="ctv-title-row">
-            <div>
-              <h1 style={title}>
-                <span style={titleIcon}>▧</span> Dashboard
-              </h1>
-              <p style={subtitle}>
-                Overview of today’s operations and system status
-              </p>
-            </div>
-
-            <div style={dateCard}>
-              ▣{" "}
-              {now.toLocaleDateString([], {
-                month: "long",
+            {now.toLocaleDateString(
+              [],
+              {
+                month: "short",
                 day: "numeric",
                 year: "numeric",
-                weekday: "long",
-              })}
-            </div>
+                weekday: "short",
+              }
+            )}
           </div>
+        </div>
 
-          <div style={statsGrid} className="ctv-stats-grid">
-            <StatCard
-              icon="✈"
-              value={total}
-              label="Total Routes"
-              sub="Scheduled for today"
-              color="#2563eb"
-            />
-            <StatCard
-              icon="✓"
-              value={counts["ON TIME"] || 0}
-              label="On Time"
-              sub="Routes running on time"
-              color="#16a34a"
-            />
-            <StatCard
-              icon="◷"
-              value={counts["DELAYED"] || 0}
-              label="Delayed"
-              sub="Routes delayed"
-              color="#f97316"
-            />
-            <StatCard
-              icon="🚚"
-              value={counts["LOADING"] || 0}
-              label="Loading"
-              sub="Currently loading"
-              color="#7c3aed"
-            />
-            <StatCard
-              icon="✈"
-              value={counts["ENROUTE"] || 0}
-              label="Enroute"
-              sub="Currently enroute"
-              color="#0f766e"
-            />
-            <StatCard
-              icon="×"
-              value={counts["CANCELLED"] || 0}
-              label="Cancelled"
-              sub="Routes cancelled"
-              color="#ef4444"
-            />
-          </div>
+        {/* TOP SUMMARY CARDS */}
 
-          <div style={middleGrid} className="ctv-middle-grid">
-            <div style={card}>
-              <h2 style={cardTitle}>⌁ Route Status Overview</h2>
+        <div
+          style={statsGridStyle}
+          className="dashboard-stats"
+        >
+          <StatCard
+            icon={<FiActivity />}
+            value={total}
+            label="Total Routes"
+            sub="Scheduled for today"
+            color="#ec2772"
+            soft="#fff0f6"
+          />
 
-              <div style={overviewBody} className="ctv-overview-body">
-                <div style={{ ...donut, background: donutGradient }}>
-                  <div style={donutInner}>
-                    <strong>{total}</strong>
-                    <span>Total</span>
-                  </div>
-                </div>
+          <StatCard
+            icon="✓"
+            value={
+              counts["ON TIME"] || 0
+            }
+            label="On Time"
+            sub="Routes running on time"
+            color="#16a34a"
+            soft="#ecfdf3"
+          />
 
-                <div style={legend}>
-                  {STATUSES.map((s) => (
-                    <div key={s} style={legendRow}>
-                      <span
-                        style={{ ...legendDot, background: statusColor(s) }}
-                      ></span>
-                      <span>{labelCase(s)}</span>
-                      <span>{counts[s] || 0}</span>
-                      <span>
-                        {total
-                          ? Math.round(((counts[s] || 0) / total) * 100)
-                          : 0}
-                        %
-                      </span>
-                    </div>
-                  ))}
+          <StatCard
+            icon={<FiClock />}
+            value={
+              counts["DELAYED"] || 0
+            }
+            label="Delayed"
+            sub="Routes delayed"
+            color="#f97316"
+            soft="#fff7ed"
+          />
+
+          <StatCard
+            icon={<FiTruck />}
+            value={
+              counts["ENROUTE"] || 0
+            }
+            label="Enroute"
+            sub="Routes on the way"
+            color="#8b5cf6"
+            soft="#f5f3ff"
+          />
+
+          <StatCard
+            icon={<FiArrowDownLeft />}
+            value={arrivals}
+            label="Arrivals"
+            sub="Scheduled to arrive"
+            color="#0ea5e9"
+            soft="#f0f9ff"
+          />
+        </div>
+
+        {/* MAIN GRID */}
+
+        <div
+          style={mainGridStyle}
+          className="dashboard-main-grid"
+        >
+          {/* TODAY'S ROUTES */}
+
+          <div
+            style={cardStyle}
+            className="dashboard-main-card"
+          >
+            <div
+              style={cardHeaderStyle}
+              className="dashboard-card-header"
+            >
+              <div>
+                <h2
+                  style={cardTitleStyle}
+                  className="dashboard-card-title"
+                >
+                  Today’s Routes
+                </h2>
+
+                <div
+                  style={cardSubtitleStyle}
+                  className="dashboard-card-subtitle"
+                >
+                  Live operational route overview
                 </div>
               </div>
-            </div>
 
-            <div style={card}>
-              <h2 style={cardTitle}>◷ Recent Activity</h2>
-
-              {recentActivities.length === 0 ? (
-                <div style={{ color: "#64748b", fontWeight: 700 }}>
-                  No recent route activity yet
-                </div>
-              ) : (
-                recentActivities.map((a, index) => (
-                  <Activity
-                    key={index}
-                    text={a.text}
-                    status={a.status}
-                    time={formatActivityTime(a.time)}
-                  />
-                ))
-              )}
-
-              <div style={viewLink}>View all activity logs →</div>
-            </div>
-          </div>
-
-          <div style={card}>
-            <div style={routesHeader} className="ctv-routes-header">
-              <h2 style={cardTitle}>☷ Today’s Routes</h2>
-
-              <div style={tabs} className="ctv-tabs">
-                <span style={tabActive}>All ({total})</span>
-                <span style={{ ...tab, color: "#16a34a" }}>
-                  On Time ({counts["ON TIME"] || 0})
-                </span>
-                <span style={{ ...tab, color: "#f97316" }}>
-                  Delayed ({counts["DELAYED"] || 0})
-                </span>
-                <span style={{ ...tab, color: "#2563eb" }}>
-                  Loading ({counts["LOADING"] || 0})
-                </span>
-                <span style={{ ...tab, color: "#7c3aed" }}>
-                  Enroute ({counts["ENROUTE"] || 0})
-                </span>
-                <span style={{ ...tab, color: "#dc2626" }}>
-                  Cancelled ({counts["CANCELLED"] || 0})
-                </span>
-              </div>
-
-              <Link to="/ctv-admin" style={addBtn}>
-                ＋ Add New Route
+              <Link
+                to="/ctv-admin"
+                style={headerLinkStyle}
+              >
+                View all routes →
               </Link>
             </div>
 
-            <div style={table} className="ctv-table">
-              <div style={thead} className="ctv-thead">
-                <span>DEPART TIME</span>
+            {/* FILTER DISPLAY */}
+
+            <div
+              style={filterRowStyle}
+              className="dashboard-filter-row"
+            >
+              <span
+                className="dashboard-filter-pill"
+                style={{
+                  ...filterPillStyle,
+                  background: "#fff0f6",
+                  color: "#ec2772",
+                  borderColor: "#ffd6e5",
+                }}
+              >
+                All ({total})
+              </span>
+
+              <span
+                className="dashboard-filter-pill"
+                style={{
+                  ...filterPillStyle,
+                  background: "#ecfdf3",
+                  color: "#16a34a",
+                  borderColor: "#bbf7d0",
+                }}
+              >
+                On Time ({counts["ON TIME"] || 0})
+              </span>
+
+              <span
+                className="dashboard-filter-pill"
+                style={{
+                  ...filterPillStyle,
+                  background: "#fff7ed",
+                  color: "#f97316",
+                  borderColor: "#fed7aa",
+                }}
+              >
+                Delayed ({counts["DELAYED"] || 0})
+              </span>
+
+              <span
+                className="dashboard-filter-pill"
+                style={{
+                  ...filterPillStyle,
+                  background: "#f5f3ff",
+                  color: "#7c3aed",
+                  borderColor: "#ddd6fe",
+                }}
+              >
+                Enroute ({counts["ENROUTE"] || 0})
+              </span>
+
+              <span
+                className="dashboard-filter-pill"
+                style={{
+                  ...filterPillStyle,
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  borderColor: "#fecaca",
+                }}
+              >
+                Cancelled ({counts["CANCELLED"] || 0})
+              </span>
+            </div>
+
+            {/* TABLE */}
+
+            <div
+              style={tableWrapStyle}
+              className="dashboard-table-wrap"
+            >
+              <div
+                style={tableHeaderStyle}
+                className="dashboard-table-row dashboard-table-header"
+              >
+                <span>DEPART / ARRIVE</span>
                 <span>ROUTE</span>
                 <span>DESTINATION</span>
                 <span>STATUS</span>
                 <span>DELAY</span>
-                <span>NOTES / COMMENT</span>
+                <span>DOOR</span>
                 <span>ACTIONS</span>
               </div>
 
-              {routes.slice(0, 7).map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    ...trow,
-                    borderLeft: `4px solid ${statusColor(r.status)}`,
-                  }}
-                  className="ctv-trow"
-                >
-                  <span style={timeText}>{r.scheduled_departure_time}</span>
-                  <span style={routeText}>
-                    {r.route_number} → {r.destination}
-                  </span>
-                  <span>{destName(r.destination)}</span>
-                  <span>
-                    <b style={{ ...pill, background: statusColor(r.status) }}>
-                      {r.status}
-                    </b>
-                  </span>
-                  <span
-                    style={{
-                      color: r.delay_minutes > 0 ? "#f97316" : "#64748b",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {r.delay_minutes > 0 ? `${r.delay_minutes} min` : "---"}
-                  </span>
-                  <span>{r.notes || "--"}</span>
-                  <span style={actions}>
-                    <Link to="/ctv-admin" style={actionBtn}>
-                      ✎
-                    </Link>
-                    <Link to="/tv" style={eyeBtn}>
-                      ◉
-                    </Link>
-                  </span>
+              {routes
+                .slice(0, 6)
+                .map((route) => {
+                  const isArrival =
+                    getRouteType(route) ===
+                    "INBOUND";
+
+                  return (
+                    <div
+                      key={route.id}
+                      style={tableRowStyle}
+                      className="dashboard-table-row"
+                    >
+                      {/* TIME */}
+
+                      <div>
+                        <div
+                          className="dashboard-route-time"
+                          style={{
+                            ...routeTimeStyle,
+                            color: isArrival
+                              ? "#16a34a"
+                              : "#ec2772",
+                          }}
+                        >
+                          {
+                            route.scheduled_departure_time
+                          }
+                        </div>
+
+                        <div
+                          className="dashboard-route-type"
+                          style={{
+                            ...routeTypeStyle,
+                            color: isArrival
+                              ? "#16a34a"
+                              : "#ec2772",
+                          }}
+                        >
+                          {isArrival
+                            ? "Arrive"
+                            : "Depart"}
+                        </div>
+                      </div>
+
+                      {/* ROUTE */}
+
+                      <div style={routeNameStyle}>
+                        {route.route_number}
+
+                        <span style={routeArrowStyle}>
+                          {isArrival
+                            ? "←"
+                            : "→"}
+                        </span>
+
+                        {route.destination}
+                      </div>
+
+                      {/* DESTINATION */}
+
+                      <div style={destinationStyle}>
+                        <FiMapPin />
+                        {route.destination}
+                      </div>
+
+                      {/* STATUS */}
+
+                      <div>
+                        <span
+                          className="dashboard-status-pill"
+                          style={{
+                            ...statusPillStyle,
+                            background:
+                              statusSoftBg(
+                                route.status
+                              ),
+                            color:
+                              statusColor(
+                                route.status
+                              ),
+                            borderColor:
+                              statusBorder(
+                                route.status
+                              ),
+                          }}
+                        >
+                          {route.status}
+                        </span>
+                      </div>
+
+                      {/* DELAY */}
+
+                      <div
+                        style={{
+                          ...delayStyle,
+                          color:
+                            Number(
+                              route.delay_minutes
+                            ) > 0
+                              ? "#f97316"
+                              : "#94a3b8",
+                        }}
+                      >
+                        {Number(
+                          route.delay_minutes
+                        ) > 0
+                          ? `${route.delay_minutes} min`
+                          : "--"}
+                      </div>
+
+                      {/* DOOR */}
+
+                      <div style={doorStyle}>
+                        {route.door_number || "--"}
+                      </div>
+
+                      {/* ACTION */}
+
+                      <div>
+                        <Link
+                          to="/ctv-admin"
+                          style={viewButtonStyle}
+                        >
+                          <FiEye />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {routes.length === 0 && (
+                <div style={emptyRoutesStyle}>
+                  No routes available today.
                 </div>
-              ))}
+              )}
             </div>
 
-            <Link to="/ctv-admin" style={bottomLink}>
+            <Link
+              to="/ctv-admin"
+              style={bottomLinkStyle}
+            >
               View all routes →
             </Link>
           </div>
-        </section>
-      </main>
-    </div>
+
+          {/* RECENT ACTIVITY */}
+
+          <div
+            style={cardStyle}
+            className="dashboard-main-card"
+          >
+            <div style={cardHeaderStyle}>
+              <div>
+                <h2
+                  style={cardTitleStyle}
+                  className="dashboard-card-title"
+                >
+                  Recent Activity
+                </h2>
+
+                <div
+                  style={cardSubtitleStyle}
+                  className="dashboard-card-subtitle"
+                >
+                  Latest route updates
+                </div>
+              </div>
+            </div>
+
+            <div>
+              {recentActivities.length === 0 ? (
+                <div style={noActivityStyle}>
+                  No recent route activity yet.
+                </div>
+              ) : (
+                recentActivities.map(
+                  (route) => (
+                    <Activity
+                      key={route.id}
+                      route={route}
+                    />
+                  )
+                )
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM OPERATION CARDS */}
+
+        <div
+          style={bottomStatsGrid}
+          className="dashboard-bottom-stats"
+        >
+          <MiniStat
+            title="Departures"
+            value={departures}
+            color="#ec2772"
+            icon={<FiArrowRight />}
+          />
+
+          <MiniStat
+            title="Loading"
+            value={
+              counts["LOADING"] || 0
+            }
+            color="#2563eb"
+            icon={<FiTruck />}
+          />
+
+          <MiniStat
+            title="Not Started"
+            value={
+              counts["NOT STARTED"] || 0
+            }
+            color="#64748b"
+            icon={<FiClock />}
+          />
+
+          <MiniStat
+            title="Cancelled"
+            value={
+              counts["CANCELLED"] || 0
+            }
+            color="#ef4444"
+            icon="×"
+          />
+        </div>
+      </div>
+    </AdminLayout>
   );
 }
 
-function NavGroup({ title, children }) {
-  return (
-    <div style={navGroup}>
-      <div style={navTitle}>{title}</div>
-      {children}
-    </div>
-  );
-}
+/* =====================================================
+   TOP STAT CARD
+===================================================== */
 
-function NavItem({ icon, text, to, active }) {
+function StatCard({
+  icon,
+  value,
+  label,
+  sub,
+  color,
+  soft,
+}) {
   return (
-    <Link to={to} style={active ? navItemActive : navItem}>
-      <span style={navIcon}>{icon}</span>
-      {text}
-    </Link>
-  );
-}
+    <div
+      style={statCardStyle}
+      className="dashboard-stat-card"
+    >
+      <div
+        className="dashboard-stat-icon"
+        style={{
+          ...statIconStyle,
+          background: soft,
+          color,
+        }}
+      >
+        {icon}
+      </div>
 
-function StatCard({ icon, value, label, sub, color }) {
-  return (
-    <div style={statCard}>
-      <div style={{ ...statIcon, background: color }}>{icon}</div>
       <div>
-        <div style={statValue}>{value}</div>
-        <div style={statLabel}>{label}</div>
-        <div style={statSub}>{sub}</div>
+        <div
+          style={statValueStyle}
+          className="dashboard-stat-value"
+        >
+          {value}
+        </div>
+
+        <div
+          style={statLabelStyle}
+          className="dashboard-stat-label"
+        >
+          {label}
+        </div>
+
+        <div
+          style={statSubStyle}
+          className="dashboard-stat-sub"
+        >
+          {sub}
+        </div>
+      </div>
+
+      <div
+        style={{
+          ...smallAccentStyle,
+          background: color,
+        }}
+      />
+    </div>
+  );
+}
+
+/* =====================================================
+   MINI STAT
+===================================================== */
+
+function MiniStat({
+  title,
+  value,
+  color,
+  icon,
+}) {
+  return (
+    <div
+      style={miniCardStyle}
+      className="dashboard-bottom-card"
+    >
+      <div
+        className="dashboard-mini-icon"
+        style={{
+          ...miniIconStyle,
+          background: `${color}12`,
+          color,
+        }}
+      >
+        {icon}
+      </div>
+
+      <div>
+        <div
+          style={miniTitleStyle}
+          className="dashboard-bottom-title"
+        >
+          {title}
+        </div>
+
+        <div
+          style={{
+            ...miniValueStyle,
+            color,
+          }}
+          className="dashboard-bottom-value"
+        >
+          {value}
+        </div>
       </div>
     </div>
   );
 }
 
-function formatActivityTime(value) {
-  if (!value) return "Just now";
+/* =====================================================
+   ACTIVITY
+===================================================== */
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Just now";
+function Activity({ route }) {
+  const status =
+    route.status || "NOT STARTED";
 
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function Activity({ text, status, time }) {
   return (
-    <div style={activityRow}>
-      <span>⊕</span>
-      <span>
-        {text} {status && <b style={{ color: statusColor(status) }}>{status}</b>}
-      </span>
-      <span>{time}</span>
+    <div
+      style={activityRowStyle}
+      className="dashboard-activity-row"
+    >
+      <div
+        className="dashboard-activity-icon"
+        style={{
+          ...activityIconStyle,
+          background:
+            statusSoftBg(status),
+          color:
+            statusColor(status),
+        }}
+      >
+        {getActivityIcon(status)}
+      </div>
+
+      <div style={activityMainStyle}>
+        <div
+          style={activityTitleStyle}
+          className="dashboard-activity-title"
+        >
+          Route {route.route_number}{" "}
+          <span
+            style={{
+              color:
+                statusColor(status),
+            }}
+          >
+            {labelCase(status)}
+          </span>
+        </div>
+
+        <div
+          style={activitySubStyle}
+          className="dashboard-activity-sub"
+        >
+          {route.notes ||
+            `${route.destination} • Door ${
+              route.door_number || "--"
+            }`}
+        </div>
+      </div>
+
+      <div
+        style={activityTimeStyle}
+        className="dashboard-activity-time"
+      >
+        {formatActivityTime(
+          route.updated_at ||
+            route.created_at
+        )}
+      </div>
     </div>
   );
 }
 
-const statusColor = (s) =>
+/* =====================================================
+   HELPERS
+===================================================== */
+
+const getRouteType = (route) =>
+  String(
+    route.route_type ||
+      route.type ||
+      "OUTBOUND"
+  ).toUpperCase();
+
+function formatActivityTime(value) {
+  if (!value) {
+    return "Just now";
+  }
+
+  const date = new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "Just now";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+}
+
+const labelCase = (status) => {
+  return String(status || "")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) =>
+      char.toUpperCase()
+    );
+};
+
+const getActivityIcon = (status) => {
+  switch (status) {
+    case "ON TIME":
+      return "✓";
+
+    case "DELAYED":
+      return "◷";
+
+    case "LOADING":
+      return "▣";
+
+    case "ENROUTE":
+      return "→";
+
+    case "ARRIVED":
+      return "✓";
+
+    case "CANCELLED":
+      return "×";
+
+    default:
+      return "•";
+  }
+};
+
+const statusColor = (status) =>
   ({
     "ON TIME": "#16a34a",
     DELAYED: "#f97316",
@@ -461,556 +893,780 @@ const statusColor = (s) =>
     ENROUTE: "#7c3aed",
     ARRIVED: "#0f766e",
     CANCELLED: "#ef4444",
-    "NOT STARTED": "#94a3b8",
-  }[s] || "#64748b");
+    "NOT STARTED": "#64748b",
+    DEPARTED: "#ec2772",
+  }[status] || "#64748b");
 
-const labelCase = (s) => s.charAt(0) + s.slice(1).toLowerCase();
-
-const destName = (d) =>
+const statusSoftBg = (status) =>
   ({
-    YMX: "Montreal-Trudeau",
-    YYZR: "Billy Bishop Toronto City",
-    YBCS: "Nanaimo Harbour",
-    YQX: "Gander Intl",
-    YMXR: "Montreal Mirabel",
-    YTZR: "Toronto Pearson",
-    YQG: "Windsor Intl",
-    YUL: "Montreal-Trudeau",
-  }[d] || d);
+    "ON TIME": "#ecfdf3",
+    DELAYED: "#fff7ed",
+    LOADING: "#eff6ff",
+    ENROUTE: "#f5f3ff",
+    ARRIVED: "#ecfdf5",
+    CANCELLED: "#fef2f2",
+    "NOT STARTED": "#f1f5f9",
+    DEPARTED: "#fff0f6",
+  }[status] || "#f8fafc");
 
-const page = {
+const statusBorder = (status) =>
+  ({
+    "ON TIME": "#bbf7d0",
+    DELAYED: "#fed7aa",
+    LOADING: "#bfdbfe",
+    ENROUTE: "#ddd6fe",
+    ARRIVED: "#bbf7d0",
+    CANCELLED: "#fecaca",
+    "NOT STARTED": "#cbd5e1",
+    DEPARTED: "#ffd6e5",
+  }[status] || "#e2e8f0");
+
+/* =====================================================
+   PAGE
+===================================================== */
+
+const pageStyle = {
+  padding: "28px 30px 38px",
   minHeight: "100vh",
-  display: "flex",
-  background: "#f8fafc",
-  color: "#0f172a",
-  fontFamily: "Inter, Arial, sans-serif",
+  background:
+    "linear-gradient(180deg,#fafbfe,#f6f7fb)",
+  color: "#111827",
 };
 
-const sidebar = {
-  width: 280,
-  background: "#ffffff",
-  borderRight: "1px solid #e2e8f0",
-  padding: "22px 14px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 16,
-  transition: "all .25s ease",
-  overflow: "hidden",
-  flexShrink: 0,
-};
+/* =====================================================
+   HEADER
+===================================================== */
 
-const sidebarClosed = {
-  width: 0,
-  minWidth: 0,
-  overflow: "hidden",
-  background: "#ffffff",
-  borderRight: "0 solid transparent",
-  padding: 0,
+const headerStyle = {
   display: "flex",
-  flexDirection: "column",
-  gap: 16,
-  transition: "all .25s ease",
-  flexShrink: 0,
-};
-
-const brand = {
-  display: "flex",
-  gap: 12,
   alignItems: "center",
-  padding: "0 58px 18px 8px",
-  borderBottom: "1px solid #e2e8f0",
-  position: "relative",
-  minHeight: 64,
-};
-
-const brandIcon = {
-  width: 50,
-  height: 50,
-  borderRadius: 14,
-  background: "linear-gradient(135deg,#f8fafc,#e2e8f0)",
-  border: "1px solid #e2e8f0",
-  display: "grid",
-  placeItems: "center",
-  boxShadow: "0 8px 18px rgba(15,23,42,.08)",
-  flexShrink: 0,
-};
-
-const brandTitle = {
-  fontSize: 22,
-  fontWeight: 950,
-  color: "#7c2d12",
-  letterSpacing: "-.03em",
-  whiteSpace: "nowrap",
-  lineHeight: 1.1,
-};
-
-const brandSub = {
-  color: "#64748b",
-  fontWeight: 600,
-};
-
-const navGroup = { marginTop: 12 };
-const navTitle = {
-  color: "#64748b",
-  fontSize: 13,
-  fontWeight: 900,
-  margin: "18px 8px 10px",
-};
-
-const navItem = {
-  display: "flex",
-  gap: 14,
-  alignItems: "center",
-  padding: "14px 12px",
-  borderRadius: 9,
-  textDecoration: "none",
-  color: "#0f172a",
-  fontWeight: 700,
-};
-
-const navItemActive = {
-  ...navItem,
-  background: "#dbeafe",
-  color: "#2563eb",
-};
-
-const navIcon = { fontSize: 20 };
-
-const systemStatus = {
-  marginTop: "auto",
-  border: "1px solid #e2e8f0",
-  borderRadius: 10,
-  padding: 18,
-};
-
-const greenDot = {
-  width: 13,
-  height: 13,
-  background: "#22c55e",
-  borderRadius: "50%",
-};
-
-const systemSub = {
-  color: "#475569",
-  marginTop: 8,
-};
-
-const main = {
-  flex: 1,
-  minWidth: 0,
-};
-
-const topbar = {
-  height: 72,
-  display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  padding: "0 28px",
-  borderBottom: "1px solid #e2e8f0",
-  background: "#fff",
+  marginBottom: 24,
+  gap: 20,
 };
 
-const hamburger = {
-  width: 46,
-  height: 46,
-  border: "1px solid #e2e8f0",
-  background: "#ffffff",
-  borderRadius: 12,
-  fontSize: 24,
-  cursor: "pointer",
-  display: "grid",
-  placeItems: "center",
-  color: "#0f172a",
-  boxShadow: "0 8px 20px rgba(15,23,42,.06)",
+const smallTopText = {
+  color: "#ec2772",
+  fontSize: 9,
   fontWeight: 900,
+  letterSpacing: ".14em",
+  marginBottom: 6,
 };
 
-const topRight = {
-  display: "flex",
-  gap: 14,
-  alignItems: "center",
-};
-
-const bell = { position: "relative", fontSize: 22 };
-
-const badge = {
-  position: "absolute",
-  top: -10,
-  right: -9,
-  background: "#ef4444",
-  color: "white",
-  borderRadius: "50%",
-  fontSize: 11,
-  padding: "2px 6px",
-};
-
-const avatar = {
-  width: 40,
-  height: 40,
-  borderRadius: "50%",
-  background: "#2563eb",
-  color: "white",
-  display: "grid",
-  placeItems: "center",
-  fontWeight: 900,
-};
-
-const content = { padding: 28 };
-
-const titleRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 22,
-};
-
-const title = {
+const titleStyle = {
   margin: 0,
-  fontSize: 32,
-  fontWeight: 950,
+  fontSize: 29,
+  fontWeight: 900,
+  letterSpacing: "-.035em",
 };
 
-const titleIcon = { marginRight: 12 };
-
-const subtitle = {
-  margin: "6px 0 0",
-  color: "#475569",
+const subtitleStyle = {
+  margin: "5px 0 0",
+  color: "#64748b",
+  fontSize: 12,
   fontWeight: 600,
 };
 
-const dateCard = {
-  border: "1px solid #cbd5e1",
+const dateBoxStyle = {
+  minHeight: 43,
+  padding: "0 15px",
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  background: "#ffffff",
+  border:
+    "1px solid #e4e7ec",
   borderRadius: 8,
-  padding: "14px 18px",
-  background: "#fff",
+  color: "#475569",
+  fontSize: 11,
+  fontWeight: 800,
+  boxShadow:
+    "0 4px 15px rgba(15,23,42,.035)",
+};
+
+/* =====================================================
+   STAT CARDS
+===================================================== */
+
+const statsGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(5,minmax(0,1fr))",
+  gap: 14,
+  marginBottom: 18,
+};
+
+const statCardStyle = {
+  minHeight: 115,
+  padding: "17px 17px",
+  position: "relative",
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 13,
+  background: "#ffffff",
+  border:
+    "1px solid #eceef3",
+  borderRadius: 11,
+  boxShadow:
+    "0 7px 25px rgba(15,23,42,.045)",
+};
+
+const statIconStyle = {
+  width: 44,
+  height: 44,
+  borderRadius: 11,
+  flexShrink: 0,
+  display: "grid",
+  placeItems: "center",
+  fontSize: 20,
+  fontWeight: 900,
+};
+
+const statValueStyle = {
+  fontSize: 26,
+  lineHeight: 1,
+  fontWeight: 900,
+  color: "#111827",
+};
+
+const statLabelStyle = {
+  marginTop: 6,
+  fontSize: 11,
+  fontWeight: 900,
+  color: "#1e293b",
+};
+
+const statSubStyle = {
+  marginTop: 4,
+  color: "#94a3b8",
+  fontSize: 9,
+  lineHeight: 1.3,
+  fontWeight: 600,
+};
+
+const smallAccentStyle = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: 3,
+  opacity: 0.75,
+};
+
+/* =====================================================
+   MAIN GRID
+===================================================== */
+
+const mainGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "minmax(0,1.6fr) minmax(300px,.8fr)",
+  gap: 16,
+  marginBottom: 16,
+};
+
+const cardStyle = {
+  background: "#ffffff",
+  border:
+    "1px solid #eceef3",
+  borderRadius: 11,
+  padding: 18,
+  boxShadow:
+    "0 7px 25px rgba(15,23,42,.04)",
+  minWidth: 0,
+};
+
+const cardHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 16,
+  marginBottom: 16,
+};
+
+const cardTitleStyle = {
+  margin: 0,
+  color: "#18243b",
+  fontSize: 15,
+  fontWeight: 900,
+  letterSpacing: "-.015em",
+};
+
+const cardSubtitleStyle = {
+  marginTop: 4,
+  color: "#94a3b8",
+  fontSize: 9,
+  fontWeight: 600,
+};
+
+const headerLinkStyle = {
+  color: "#ec2772",
+  textDecoration: "none",
+  fontSize: 10,
+  fontWeight: 900,
+};
+
+/* =====================================================
+   FILTERS
+===================================================== */
+
+const filterRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 7,
+  marginBottom: 13,
+};
+
+const filterPillStyle = {
+  padding: "6px 10px",
+  borderRadius: 6,
+  border: "1px solid",
+  fontSize: 8,
+  fontWeight: 900,
+};
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+const tableWrapStyle = {
+  width: "100%",
+  overflow: "hidden",
+  borderTop:
+    "1px solid #edf0f5",
+};
+
+const tableHeaderStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "1.1fr 1.4fr 1.4fr 1.1fr .8fr .6fr .5fr",
+  gap: 10,
+  padding:
+    "11px 7px",
+  color: "#64748b",
+  fontSize: 7.5,
+  fontWeight: 900,
+  letterSpacing: ".04em",
+};
+
+const tableRowStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "1.1fr 1.4fr 1.4fr 1.1fr .8fr .6fr .5fr",
+  gap: 10,
+  alignItems: "center",
+  padding:
+    "12px 7px",
+  borderTop:
+    "1px solid #edf0f5",
+  fontSize: 9.5,
+};
+
+const routeTimeStyle = {
+  fontWeight: 900,
+  fontSize: 11,
+};
+
+const routeTypeStyle = {
+  marginTop: 3,
+  fontSize: 8,
   fontWeight: 800,
 };
 
-const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(6, 1fr)",
-  gap: 14,
-  marginBottom: 22,
-};
-
-const statCard = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 10,
-  padding: 18,
-  display: "flex",
-  gap: 16,
-  alignItems: "center",
-};
-
-const statIcon = {
-  width: 56,
-  height: 56,
-  borderRadius: "50%",
-  color: "white",
-  display: "grid",
-  placeItems: "center",
-  fontSize: 28,
-  flexShrink: 0,
-};
-
-const statValue = { fontSize: 28, fontWeight: 950 };
-const statLabel = { fontWeight: 900 };
-const statSub = { color: "#475569", fontSize: 13 };
-
-const middleGrid = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: 16,
-  marginBottom: 22,
-};
-
-const card = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 10,
-  padding: 20,
-};
-
-const cardTitle = {
-  margin: "0 0 18px",
-  fontSize: 20,
-};
-
-const overviewBody = {
-  display: "grid",
-  gridTemplateColumns: "250px 1fr",
-  gap: 24,
-  alignItems: "center",
-};
-
-const donut = {
-  width: 170,
-  height: 170,
-  borderRadius: "50%",
-  background:
-    "conic-gradient(#16a34a 0 25%, #f97316 25% 42%, #2563eb 42% 60%, #7c3aed 60% 70%, #ef4444 70% 82%, #cbd5e1 82% 100%)",
-  display: "grid",
-  placeItems: "center",
-  margin: "auto",
-};
-
-const donutInner = {
-  width: 98,
-  height: 98,
-  borderRadius: "50%",
-  background: "#fff",
-  display: "grid",
-  placeItems: "center",
-  textAlign: "center",
-  fontSize: 22,
-};
-
-const legend = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-};
-
-const legendRow = {
-  display: "grid",
-  gridTemplateColumns: "20px 1fr 40px 50px",
-  borderBottom: "1px solid #e2e8f0",
-  paddingBottom: 8,
-};
-
-const legendDot = {
-  width: 14,
-  height: 14,
-  borderRadius: "50%",
-};
-
-const activityRow = {
-  display: "grid",
-  gridTemplateColumns: "30px 1fr 80px",
-  padding: "11px 0",
-  borderBottom: "1px solid #e2e8f0",
-  fontSize: 14,
-};
-
-const viewLink = {
-  color: "#2563eb",
+const routeNameStyle = {
+  color: "#18243b",
   fontWeight: 900,
-  marginTop: 12,
-};
-
-const routesHeader = {
   display: "flex",
   alignItems: "center",
-  gap: 16,
-  marginBottom: 14,
+  gap: 6,
 };
 
-const tabs = {
-  display: "flex",
-  gap: 8,
-  flex: 1,
-};
-
-const tab = {
-  padding: "8px 12px",
-  borderRadius: 7,
-  fontWeight: 900,
-  background: "#f8fafc",
-  fontSize: 13,
-};
-
-const tabActive = {
-  ...tab,
-  background: "#dbeafe",
-  color: "#2563eb",
-};
-
-const addBtn = {
-  background: "#2563eb",
-  color: "white",
-  padding: "11px 18px",
-  borderRadius: 7,
-  textDecoration: "none",
+const routeArrowStyle = {
+  color: "#94a3b8",
   fontWeight: 900,
 };
 
-const table = {
-  borderTop: "1px solid #e2e8f0",
-};
-
-const thead = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr",
-  padding: "13px 16px",
-  color: "#64748b",
-  fontSize: 12,
-  fontWeight: 900,
-};
-
-const trow = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1.5fr 2fr 1.2fr 1fr 2fr 1fr",
-  padding: "13px 16px",
-  alignItems: "center",
-  borderTop: "1px solid #e2e8f0",
-  fontSize: 14,
-};
-
-const timeText = { fontWeight: 900 };
-const routeText = { fontWeight: 900 };
-
-const pill = {
-  color: "white",
-  padding: "6px 12px",
-  borderRadius: 5,
-  fontSize: 12,
-};
-
-const actions = {
+const destinationStyle = {
   display: "flex",
-  gap: 8,
-};
-
-const actionBtn = {
-  background: "#2563eb",
-  color: "white",
-  borderRadius: 6,
-  padding: "7px 10px",
-  textDecoration: "none",
-};
-
-const eyeBtn = {
-  background: "#eef2ff",
-  color: "#334155",
-  borderRadius: 6,
-  padding: "7px 10px",
-  textDecoration: "none",
-};
-
-const bottomLink = {
-  display: "inline-block",
-  marginTop: 16,
-  color: "#2563eb",
-  fontWeight: 900,
-  textDecoration: "none",
-};
-
-const logoutNavItem = {
-  display: "flex",
-  gap: 14,
   alignItems: "center",
-  padding: "14px 12px",
-  borderRadius: 9,
-  textDecoration: "none",
-  color: "#dc2626",
+  gap: 5,
+  color: "#475569",
   fontWeight: 700,
-  border: "none",
-  background: "#fee2e2",
-  cursor: "pointer",
-  width: "100%",
-  fontSize: 16,
 };
+
+const statusPillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "4px 7px",
+  border: "1px solid",
+  borderRadius: 5,
+  fontSize: 7,
+  fontWeight: 900,
+};
+
+const delayStyle = {
+  fontSize: 9,
+  fontWeight: 900,
+};
+
+const doorStyle = {
+  color: "#334155",
+  fontWeight: 900,
+};
+
+const viewButtonStyle = {
+  width: 29,
+  height: 29,
+  border:
+    "1px solid #ffd6e5",
+  borderRadius: 6,
+  display: "grid",
+  placeItems: "center",
+  color: "#ec2772",
+  textDecoration: "none",
+  background: "#fff8fb",
+};
+
+const emptyRoutesStyle = {
+  padding: "30px 10px",
+  textAlign: "center",
+  color: "#94a3b8",
+  fontSize: 10,
+  fontWeight: 700,
+};
+
+const bottomLinkStyle = {
+  display: "inline-block",
+  marginTop: 14,
+  color: "#ec2772",
+  fontSize: 9,
+  fontWeight: 900,
+  textDecoration: "none",
+};
+
+/* =====================================================
+   ACTIVITY
+===================================================== */
+
+const activityRowStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "38px 1fr auto",
+  gap: 10,
+  alignItems: "center",
+  padding: "12px 0",
+  borderBottom:
+    "1px solid #edf0f5",
+};
+
+const activityIconStyle = {
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  display: "grid",
+  placeItems: "center",
+  fontSize: 15,
+  fontWeight: 900,
+};
+
+const activityMainStyle = {
+  minWidth: 0,
+};
+
+const activityTitleStyle = {
+  color: "#18243b",
+  fontSize: 9.5,
+  fontWeight: 800,
+};
+
+const activitySubStyle = {
+  marginTop: 3,
+  color: "#94a3b8",
+  fontSize: 8.5,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const activityTimeStyle = {
+  color: "#94a3b8",
+  fontSize: 8,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+
+const noActivityStyle = {
+  padding: "30px 0",
+  color: "#94a3b8",
+  textAlign: "center",
+  fontSize: 10,
+  fontWeight: 700,
+};
+
+/* =====================================================
+   BOTTOM MINI CARDS
+===================================================== */
+
+const bottomStatsGrid = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(4,minmax(0,1fr))",
+  gap: 14,
+};
+
+const miniCardStyle = {
+  minHeight: 78,
+  padding: "14px 16px",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  background: "#ffffff",
+  border:
+    "1px solid #eceef3",
+  borderRadius: 10,
+  boxShadow:
+    "0 6px 20px rgba(15,23,42,.035)",
+};
+
+const miniIconStyle = {
+  width: 37,
+  height: 37,
+  borderRadius: 9,
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  fontSize: 16,
+  fontWeight: 900,
+};
+
+const miniTitleStyle = {
+  color: "#64748b",
+  fontSize: 8,
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: ".06em",
+};
+
+const miniValueStyle = {
+  marginTop: 3,
+  fontSize: 19,
+  fontWeight: 900,
+};
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
 
 const responsiveCss = `
-
-.ctv-mobile-close {
-  display: none !important;
-}
-
-  @media (max-width: 1100px) {
-    .ctv-stats-grid {
-      grid-template-columns: repeat(3, 1fr) !important;
-    }
-
-    .ctv-middle-grid {
-      grid-template-columns: 1fr !important;
-    }
-
+  * {
+    box-sizing: border-box;
   }
 
-  @media (max-width: 768px) {
-    .ctv-sidebar.open {
-      position: fixed !important;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      z-index: 80;
-      width: 280px !important;
-      box-shadow: 20px 0 60px rgba(15,23,42,.25);
+  /* =====================================================
+     BIG MONITOR - 1600px+
+  ===================================================== */
+
+  @media (min-width: 1600px) {
+
+    .dashboard-page-scale {
+      padding: 36px 42px 48px !important;
     }
 
-    .ctv-sidebar.closed {
-      width: 0 !important;
-      min-width: 0 !important;
+    .dashboard-header {
+      margin-bottom: 30px !important;
     }
 
-    .ctv-dashboard-content {
-      padding: 16px !important;
+    .dashboard-header h1 {
+      font-size: 36px !important;
     }
 
-    .ctv-mobile-close {
-      display: grid !important;
-      place-items: center;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      border: 1px solid #dbe4f0;
-      background: linear-gradient(135deg, #ffffff, #f8fafc);
-      color: #0f172a;
-      font-size: 20px;
-      font-weight: 500;
-      cursor: pointer;
-      box-shadow:
-        0 10px 25px rgba(15,23,42,.08),
-        inset 0 1px 0 rgba(255,255,255,.9);
-      transition: all .22s ease;
-      z-index: 999;
+    .dashboard-date {
+      min-height: 48px !important;
+      padding: 0 18px !important;
+      font-size: 13px !important;
     }
 
-    .ctv-mobile-close:hover {
-      transform: scale(1.04);
-      background: linear-gradient(135deg, #f8fafc, #eef2f7);
+    .dashboard-stats {
+      gap: 18px !important;
+      margin-bottom: 24px !important;
     }
 
-    .ctv-mobile-close:active {
-      transform: scale(.97);
+    .dashboard-stat-card {
+      min-height: 145px !important;
+      padding: 22px !important;
+      gap: 16px !important;
+      border-radius: 14px !important;
     }
 
-    .ctv-title-row {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 12px !important;
+    .dashboard-stat-icon {
+      width: 54px !important;
+      height: 54px !important;
+      font-size: 24px !important;
+      border-radius: 13px !important;
     }
 
-    .ctv-stats-grid {
-      grid-template-columns: 1fr !important;
+    .dashboard-stat-value {
+      font-size: 34px !important;
     }
 
-    .ctv-overview-body {
-      grid-template-columns: 1fr !important;
+    .dashboard-stat-label {
+      font-size: 14px !important;
+      margin-top: 8px !important;
     }
 
-    .ctv-routes-header {
-      flex-direction: column !important;
-      align-items: stretch !important;
+    .dashboard-stat-sub {
+      font-size: 11px !important;
+      margin-top: 5px !important;
     }
 
-    .ctv-tabs {
-      overflow-x: auto !important;
-      padding-bottom: 4px !important;
+    .dashboard-main-grid {
+      grid-template-columns:
+        minmax(0,1.7fr)
+        minmax(380px,.8fr) !important;
+
+      gap: 20px !important;
+      margin-bottom: 20px !important;
     }
 
-    .ctv-table {
-      overflow-x: auto !important;
+    .dashboard-main-card {
+      padding: 24px !important;
+      border-radius: 14px !important;
     }
 
-    .ctv-thead,
-    .ctv-trow {
-      min-width: 850px !important;
+    .dashboard-card-title {
+      font-size: 19px !important;
+    }
+
+    .dashboard-card-subtitle {
+      font-size: 11px !important;
+    }
+
+    .dashboard-filter-row {
+      gap: 9px !important;
+      margin-bottom: 17px !important;
+    }
+
+    .dashboard-filter-pill {
+      font-size: 10px !important;
+      padding: 7px 12px !important;
+    }
+
+    .dashboard-table-header {
+      font-size: 10px !important;
+      padding: 14px 10px !important;
+    }
+
+    .dashboard-table-row {
+      font-size: 12px !important;
+      padding: 15px 10px !important;
+    }
+
+    .dashboard-route-time {
+      font-size: 15px !important;
+    }
+
+    .dashboard-route-type {
+      font-size: 10px !important;
+    }
+
+    .dashboard-status-pill {
+      font-size: 9px !important;
+      padding: 5px 9px !important;
+    }
+
+    .dashboard-activity-row {
+      grid-template-columns:
+        46px 1fr auto !important;
+
+      gap: 13px !important;
+      padding: 16px 0 !important;
+    }
+
+    .dashboard-activity-icon {
+      width: 42px !important;
+      height: 42px !important;
+      font-size: 18px !important;
+    }
+
+    .dashboard-activity-title {
+      font-size: 12px !important;
+    }
+
+    .dashboard-activity-sub {
+      font-size: 10px !important;
+      margin-top: 4px !important;
+    }
+
+    .dashboard-activity-time {
+      font-size: 9px !important;
+    }
+
+    .dashboard-bottom-stats {
+      gap: 18px !important;
+    }
+
+    .dashboard-bottom-card {
+      min-height: 95px !important;
+      padding: 18px 20px !important;
+      border-radius: 12px !important;
+    }
+
+    .dashboard-mini-icon {
+      width: 46px !important;
+      height: 46px !important;
+      font-size: 20px !important;
+    }
+
+    .dashboard-bottom-title {
+      font-size: 10px !important;
+    }
+
+    .dashboard-bottom-value {
+      font-size: 24px !important;
+    }
+  }
+
+  /* =====================================================
+     NORMAL LAPTOP / DESKTOP
+     1251px - 1599px
+  ===================================================== */
+
+  @media (min-width: 1251px) and (max-width: 1599px) {
+
+    .dashboard-stats {
+      grid-template-columns:
+        repeat(5,minmax(0,1fr)) !important;
+    }
+
+    .dashboard-main-grid {
+      grid-template-columns:
+        minmax(0,1.6fr)
+        minmax(300px,.8fr) !important;
+    }
+
+    .dashboard-bottom-stats {
+      grid-template-columns:
+        repeat(4,minmax(0,1fr)) !important;
+    }
+  }
+
+  /* =====================================================
+     SMALL LAPTOP
+  ===================================================== */
+
+  @media (max-width: 1250px) {
+
+    .dashboard-stats {
+      grid-template-columns:
+        repeat(3,minmax(0,1fr)) !important;
+    }
+
+    .dashboard-main-grid {
+      grid-template-columns:
+        1fr !important;
+    }
+
+    .dashboard-bottom-stats {
+      grid-template-columns:
+        repeat(2,minmax(0,1fr)) !important;
+    }
+  }
+
+  /* =====================================================
+     TABLET
+  ===================================================== */
+
+  @media (max-width: 900px) {
+
+    .dashboard-page-scale {
+      padding: 20px 18px 100px !important;
+    }
+
+    .dashboard-header {
+      flex-direction:
+        column !important;
+
+      align-items:
+        stretch !important;
+    }
+
+    .dashboard-date {
+      width:
+        fit-content !important;
+    }
+
+    .dashboard-table-wrap {
+      overflow-x:
+        auto !important;
+    }
+
+    .dashboard-table-row {
+      min-width:
+        780px !important;
+    }
+  }
+
+  /* =====================================================
+     MOBILE
+  ===================================================== */
+
+  @media (max-width: 650px) {
+
+    .dashboard-page-scale {
+      padding: 16px 14px 100px !important;
+    }
+
+    .dashboard-stats {
+      grid-template-columns:
+        1fr 1fr !important;
+    }
+
+    .dashboard-bottom-stats {
+      grid-template-columns:
+        1fr 1fr !important;
+    }
+
+    .dashboard-card-header {
+      flex-direction:
+        column !important;
+    }
+
+    .dashboard-filter-row {
+      overflow-x:
+        auto !important;
+
+      flex-wrap:
+        nowrap !important;
+
+      padding-bottom:
+        5px !important;
+    }
+
+    .dashboard-filter-pill {
+      flex-shrink: 0 !important;
+    }
+
+    .dashboard-stat-card {
+      min-height: 108px !important;
+      padding: 14px !important;
+    }
+  }
+
+  /* =====================================================
+     SMALL MOBILE
+  ===================================================== */
+
+  @media (max-width: 440px) {
+
+    .dashboard-stats {
+      grid-template-columns:
+        1fr !important;
+    }
+
+    .dashboard-bottom-stats {
+      grid-template-columns:
+        1fr !important;
     }
   }
 `;
