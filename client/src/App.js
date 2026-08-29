@@ -1,7 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import CTVBoardPage from "./pages/CTVBoardPage";
 import AdminCTVRoutesPage from "./pages/AdminCTVRoutesPage";
+import AdminCTVFlightsPage from "./pages/AdminCTVFlightsPage";
 import AdminCTVTemplatePage from "./pages/AdminCTVTemplatePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 
@@ -12,23 +18,79 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default */}
-        <Route path="/" element={<Navigate to="/tv" replace />} />
+        {/* DEFAULT */}
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/tv"
+              replace
+            />
+          }
+        />
 
         {/* LOGIN */}
-        <Route path="/tv-login" element={<TVLoginPage />} />
-        <Route path="/ctv-admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="/tv-login"
+          element={
+            <TVLoginPage />
+          }
+        />
+
+        <Route
+          path="/ctv-admin/login"
+          element={
+            <AdminLoginPage />
+          }
+        />
 
         {/* TV */}
-        <Route path="/tv" element={<CTVBoardPage />} />
+        <Route
+          path="/tv"
+          element={
+            <CTVBoardPage />
+          }
+        />
 
         {/* ADMIN */}
-        <Route path="/ctv-admin" element={<AdminCTVRoutesPage />} />
-        <Route path="/ctv-admin/dashboard" element={<AdminDashboardPage />} />
-        <Route path="/ctv-admin/templates" element={<AdminCTVTemplatePage />} />
+        <Route
+          path="/ctv-admin"
+          element={
+            <AdminCTVRoutesPage />
+          }
+        />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/tv" replace />} />
+        <Route
+          path="/ctv-admin/dashboard"
+          element={
+            <AdminDashboardPage />
+          }
+        />
+
+        <Route
+          path="/ctv-admin/flights"
+          element={
+            <AdminCTVFlightsPage />
+          }
+        />
+
+        <Route
+          path="/ctv-admin/templates"
+          element={
+            <AdminCTVTemplatePage />
+          }
+        />
+
+        {/* FALLBACK */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/tv"
+              replace
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

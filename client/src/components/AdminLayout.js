@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
 import {
   FiGrid,
   FiTruck,
+  FiNavigation,
   FiCalendar,
   FiMonitor,
   FiLogOut,
@@ -11,23 +17,49 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 
-export default function AdminLayout({ children }) {
+export default function AdminLayout({
+  children,
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [tvOpen, setTvOpen] = useState(true);
+  const [tvOpen, setTvOpen] =
+    useState(true);
+
+  /* =====================================================
+     LOGOUT
+  ===================================================== */
 
   const handleLogout = () => {
-    sessionStorage.removeItem("admin_auth");
-    sessionStorage.removeItem("admin_login_time");
+    sessionStorage.removeItem(
+      "admin_auth"
+    );
 
-    navigate("/ctv-admin/login");
+    sessionStorage.removeItem(
+      "admin_login_time"
+    );
+
+    navigate(
+      "/ctv-admin/login"
+    );
   };
+
+  /* =====================================================
+     OPEN TV BOARD
+  ===================================================== */
 
   const openBoard = (mode) => {
-    localStorage.setItem("ctv_board_mode", mode);
+    localStorage.setItem(
+      "ctv_board_mode",
+      mode
+    );
+
     navigate("/tv");
   };
+
+  /* =====================================================
+     MAIN MENU
+  ===================================================== */
 
   const menu = [
     {
@@ -35,11 +67,19 @@ export default function AdminLayout({ children }) {
       path: "/ctv-admin/dashboard",
       icon: <FiGrid />,
     },
+
     {
       name: "Admin Routes",
       path: "/ctv-admin",
       icon: <FiTruck />,
     },
+
+    {
+      name: "Admin Flights",
+      path: "/ctv-admin/flights",
+      icon: <FiNavigation />,
+    },
+
     {
       name: "Weekly Templates",
       path: "/ctv-admin/templates",
@@ -102,6 +142,10 @@ export default function AdminLayout({ children }) {
           transform: translateX(2px);
         }
 
+        /* =====================================================
+           TABLET / MOBILE
+        ===================================================== */
+
         @media (max-width: 900px) {
           .admin-sidebar {
             display: none !important;
@@ -134,79 +178,128 @@ export default function AdminLayout({ children }) {
         className="admin-sidebar"
         style={sidebarStyle}
       >
-        {/* BRAND */}
+        {/* =================================================
+            BRAND
+        ================================================= */}
 
-        <div style={brandHeaderStyle}>
-          <div style={brandLogoStyle}>
+        <div
+          style={
+            brandHeaderStyle
+          }
+        >
+          <div
+            style={
+              brandLogoStyle
+            }
+          >
             <img
               src="/favicon.ico"
               alt="CTV System"
               style={{
                 width: 38,
                 height: 38,
-                objectFit: "contain",
+                objectFit:
+                  "contain",
               }}
             />
           </div>
 
           <div>
-            <div style={brandTitleStyle}>
+            <div
+              style={
+                brandTitleStyle
+              }
+            >
               CTV SYSTEM
             </div>
 
-            <div style={brandSubTitleStyle}>
+            <div
+              style={
+                brandSubTitleStyle
+              }
+            >
               Route Operations
             </div>
           </div>
         </div>
 
-        {/* MAIN MENU */}
+        {/* =================================================
+            MAIN MENU
+        ================================================= */}
 
-        <div style={menuAreaStyle}>
-          {menu.map((item) => {
-            const active =
-              location.pathname === item.path;
+        <div
+          style={
+            menuAreaStyle
+          }
+        >
+          {menu.map(
+            (item) => {
+              const active =
+                location.pathname ===
+                item.path;
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="admin-menu-link"
-                style={{
-                  ...menuItemStyle,
-
-                  background: active
-                    ? "linear-gradient(90deg,#fff0f6,#fff7fa)"
-                    : "transparent",
-
-                  color: active
-                    ? "#ec2772"
-                    : "#18243b",
-
-                  borderLeft: active
-                    ? "3px solid #ec2772"
-                    : "3px solid transparent",
-                }}
-              >
-                <span
+              return (
+                <Link
+                  key={
+                    item.path
+                  }
+                  to={
+                    item.path
+                  }
+                  className="admin-menu-link"
                   style={{
-                    ...menuIconStyle,
-                    color: active
-                      ? "#ec2772"
-                      : "#53627a",
+                    ...menuItemStyle,
+
+                    background:
+                      active
+                        ? "linear-gradient(90deg,#fff0f6,#fff7fa)"
+                        : "transparent",
+
+                    color:
+                      active
+                        ? "#ec2772"
+                        : "#18243b",
+
+                    borderLeft:
+                      active
+                        ? "3px solid #ec2772"
+                        : "3px solid transparent",
                   }}
                 >
-                  {item.icon}
-                </span>
+                  <span
+                    style={{
+                      ...menuIconStyle,
 
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+                      color:
+                        active
+                          ? "#ec2772"
+                          : "#53627a",
+                    }}
+                  >
+                    {
+                      item.icon
+                    }
+                  </span>
 
-          {/* OPERATIONS LABEL */}
+                  <span>
+                    {
+                      item.name
+                    }
+                  </span>
+                </Link>
+              );
+            }
+          )}
 
-          <div style={menuSectionLabelStyle}>
+          {/* =================================================
+              OPERATIONS LABEL
+          ================================================= */}
+
+          <div
+            style={
+              menuSectionLabelStyle
+            }
+          >
             OPERATIONS
           </div>
 
@@ -218,19 +311,36 @@ export default function AdminLayout({ children }) {
             type="button"
             className="admin-tv-parent"
             onClick={() =>
-              setTvOpen((open) => !open)
+              setTvOpen(
+                (open) =>
+                  !open
+              )
             }
-            style={tvParentStyle}
+            style={
+              tvParentStyle
+            }
           >
-            <span style={menuIconStyle}>
+            <span
+              style={
+                menuIconStyle
+              }
+            >
               <FiMonitor />
             </span>
 
-            <span style={{ flex: 1 }}>
+            <span
+              style={{
+                flex: 1,
+              }}
+            >
               TV Board
             </span>
 
-            <span style={chevronStyle}>
+            <span
+              style={
+                chevronStyle
+              }
+            >
               {tvOpen ? (
                 <FiChevronDown />
               ) : (
@@ -244,19 +354,30 @@ export default function AdminLayout({ children }) {
           ================================================= */}
 
           {tvOpen && (
-            <div style={tvSubmenuStyle}>
+            <div
+              style={
+                tvSubmenuStyle
+              }
+            >
+              {/* DEPARTURE */}
+
               <button
                 type="button"
                 className="admin-tv-subitem"
                 onClick={() =>
-                  openBoard("DEPARTURE")
+                  openBoard(
+                    "DEPARTURE"
+                  )
                 }
-                style={tvSubItemStyle}
+                style={
+                  tvSubItemStyle
+                }
               >
                 <span
                   style={{
                     ...tvDotStyle,
-                    background: "#ec2772",
+                    background:
+                      "#ec2772",
                   }}
                 />
 
@@ -265,18 +386,25 @@ export default function AdminLayout({ children }) {
                 </span>
               </button>
 
+              {/* ARRIVAL */}
+
               <button
                 type="button"
                 className="admin-tv-subitem"
                 onClick={() =>
-                  openBoard("ARRIVAL")
+                  openBoard(
+                    "ARRIVAL"
+                  )
                 }
-                style={tvSubItemStyle}
+                style={
+                  tvSubItemStyle
+                }
               >
                 <span
                   style={{
                     ...tvDotStyle,
-                    background: "#8b5cf6",
+                    background:
+                      "#8b5cf6",
                   }}
                 />
 
@@ -285,18 +413,25 @@ export default function AdminLayout({ children }) {
                 </span>
               </button>
 
+              {/* FLIGHT */}
+
               <button
                 type="button"
                 className="admin-tv-subitem"
                 onClick={() =>
-                  openBoard("FLIGHT")
+                  openBoard(
+                    "FLIGHT"
+                  )
                 }
-                style={tvSubItemStyle}
+                style={
+                  tvSubItemStyle
+                }
               >
                 <span
                   style={{
                     ...tvDotStyle,
-                    background: "#2563eb",
+                    background:
+                      "#2563eb",
                   }}
                 />
 
@@ -309,39 +444,71 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* =====================================================
-            BOTTOM
+            SIDEBAR BOTTOM
         ===================================================== */}
 
-        <div style={sidebarBottomStyle}>
-          {/* SYSTEM STATUS */}
+        <div
+          style={
+            sidebarBottomStyle
+          }
+        >
+          {/* =================================================
+              SYSTEM STATUS
+          ================================================= */}
 
-          <div style={systemStatusStyle}>
-            <div style={systemStatusHeaderStyle}>
+          <div
+            style={
+              systemStatusStyle
+            }
+          >
+            <div
+              style={
+                systemStatusHeaderStyle
+              }
+            >
               <FiCheckCircle
                 style={{
-                  color: "#22c55e",
-                  fontSize: 16,
+                  color:
+                    "#22c55e",
+
+                  fontSize:
+                    16,
                 }}
               />
 
-              <span>System Status</span>
+              <span>
+                System Status
+              </span>
             </div>
 
-            <div style={systemStatusTextStyle}>
-              All Systems Operational
+            <div
+              style={
+                systemStatusTextStyle
+              }
+            >
+              All Systems
+              Operational
             </div>
           </div>
 
-          {/* LOGOUT */}
+          {/* =================================================
+              LOGOUT
+          ================================================= */}
 
           <button
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
             className="admin-logout-btn"
-            style={logoutButtonStyle}
+            style={
+              logoutButtonStyle
+            }
           >
             <FiLogOut />
 
-            <span>Logout</span>
+            <span>
+              Logout
+            </span>
           </button>
         </div>
       </aside>
@@ -352,47 +519,70 @@ export default function AdminLayout({ children }) {
 
       <main
         className="admin-content"
-        style={contentStyle}
+        style={
+          contentStyle
+        }
       >
         {children}
       </main>
 
       {/* =====================================================
-          MOBILE NAV
+          MOBILE NAVIGATION
       ===================================================== */}
 
       <div
         className="admin-mobile-nav"
-        style={mobileNavStyle}
+        style={
+          mobileNavStyle
+        }
       >
-        {menu.map((item) => {
-          const active =
-            location.pathname === item.path;
+        {menu.map(
+          (item) => {
+            const active =
+              location.pathname ===
+              item.path;
 
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              style={{
-                ...mobileNavItemStyle,
+            return (
+              <Link
+                key={
+                  item.path
+                }
+                to={
+                  item.path
+                }
+                style={{
+                  ...mobileNavItemStyle,
 
-                color: active
-                  ? "#ec2772"
-                  : "#64748b",
+                  color:
+                    active
+                      ? "#ec2772"
+                      : "#64748b",
 
-                background: active
-                  ? "#fff1f7"
-                  : "transparent",
-              }}
-            >
-              <span style={mobileIconStyle}>
-                {item.icon}
-              </span>
+                  background:
+                    active
+                      ? "#fff1f7"
+                      : "transparent",
+                }}
+              >
+                <span
+                  style={
+                    mobileIconStyle
+                  }
+                >
+                  {
+                    item.icon
+                  }
+                </span>
 
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
+                <span>
+                  {
+                    item.name
+                  }
+                </span>
+              </Link>
+            );
+          }
+        )}
       </div>
     </div>
   );
@@ -404,9 +594,15 @@ export default function AdminLayout({ children }) {
 
 const layoutStyle = {
   display: "flex",
+
   width: "100%",
-  minHeight: "100vh",
-  background: "#f6f7fb",
+
+  minHeight:
+    "100vh",
+
+  background:
+    "#f6f7fb",
+
   fontFamily:
     "Inter, Arial, Helvetica, sans-serif",
 };
@@ -417,17 +613,30 @@ const layoutStyle = {
 
 const sidebarStyle = {
   width: 255,
-  minWidth: 255,
-  minHeight: "100vh",
-  height: "100vh",
 
-  position: "sticky",
-  top: 0,
+  minWidth:
+    255,
 
-  display: "flex",
-  flexDirection: "column",
+  minHeight:
+    "100vh",
 
-  background: "#ffffff",
+  height:
+    "100vh",
+
+  position:
+    "sticky",
+
+  top:
+    0,
+
+  display:
+    "flex",
+
+  flexDirection:
+    "column",
+
+  background:
+    "#ffffff",
 
   borderRight:
     "1px solid #edf0f5",
@@ -435,9 +644,11 @@ const sidebarStyle = {
   boxShadow:
     "5px 0 24px rgba(30,41,59,.035)",
 
-  overflow: "hidden",
+  overflow:
+    "hidden",
 
-  zIndex: 50,
+  zIndex:
+    50,
 };
 
 /* ==========================================================
@@ -445,31 +656,43 @@ const sidebarStyle = {
 ========================================================== */
 
 const brandHeaderStyle = {
-  minHeight: 94,
+  minHeight:
+    94,
 
-  padding: "18px 20px",
+  padding:
+    "18px 20px",
 
-  display: "flex",
+  display:
+    "flex",
 
-  alignItems: "center",
+  alignItems:
+    "center",
 
-  gap: 13,
+  gap:
+    13,
 
   background:
     "linear-gradient(135deg,#ff3867 0%,#ec2772 45%,#9b3ce7 100%)",
 
-  color: "#ffffff",
+  color:
+    "#ffffff",
 };
 
 const brandLogoStyle = {
-  width: 48,
-  height: 48,
+  width:
+    48,
 
-  display: "grid",
+  height:
+    48,
 
-  placeItems: "center",
+  display:
+    "grid",
 
-  borderRadius: 13,
+  placeItems:
+    "center",
+
+  borderRadius:
+    13,
 
   background:
     "rgba(255,255,255,.16)",
@@ -477,25 +700,33 @@ const brandLogoStyle = {
   border:
     "1px solid rgba(255,255,255,.22)",
 
-  flexShrink: 0,
+  flexShrink:
+    0,
 };
 
 const brandTitleStyle = {
-  fontSize: 18,
+  fontSize:
+    18,
 
-  lineHeight: 1,
+  lineHeight:
+    1,
 
-  fontWeight: 900,
+  fontWeight:
+    900,
 
-  letterSpacing: "-.02em",
+  letterSpacing:
+    "-.02em",
 };
 
 const brandSubTitleStyle = {
-  marginTop: 6,
+  marginTop:
+    6,
 
-  fontSize: 11,
+  fontSize:
+    11,
 
-  fontWeight: 600,
+  fontWeight:
+    600,
 
   color:
     "rgba(255,255,255,.82)",
@@ -506,62 +737,86 @@ const brandSubTitleStyle = {
 ========================================================== */
 
 const menuAreaStyle = {
-  padding: "20px 14px",
+  padding:
+    "20px 14px",
 
-  display: "flex",
+  display:
+    "flex",
 
-  flexDirection: "column",
+  flexDirection:
+    "column",
 
-  gap: 5,
+  gap:
+    5,
 };
 
 const menuItemStyle = {
-  width: "100%",
+  width:
+    "100%",
 
-  minHeight: 47,
+  minHeight:
+    47,
 
-  padding: "0 15px",
+  padding:
+    "0 15px",
 
-  borderRadius: 7,
+  borderRadius:
+    7,
 
-  display: "flex",
+  display:
+    "flex",
 
-  alignItems: "center",
+  alignItems:
+    "center",
 
-  gap: 13,
+  gap:
+    13,
 
-  textDecoration: "none",
+  textDecoration:
+    "none",
 
-  fontSize: 13,
+  fontSize:
+    13,
 
-  fontWeight: 800,
+  fontWeight:
+    800,
 
-  cursor: "pointer",
+  cursor:
+    "pointer",
 };
 
 const menuIconStyle = {
-  width: 21,
+  width:
+    21,
 
-  minWidth: 21,
+  minWidth:
+    21,
 
-  fontSize: 18,
+  fontSize:
+    18,
 
-  display: "grid",
+  display:
+    "grid",
 
-  placeItems: "center",
+  placeItems:
+    "center",
 };
 
 const menuSectionLabelStyle = {
   margin:
     "25px 15px 8px",
 
-  color: "#94a3b8",
+  color:
+    "#94a3b8",
 
-  fontSize: 9,
+  fontSize:
+    9,
 
-  fontWeight: 900,
+  fontWeight:
+    900,
 
-  letterSpacing: ".12em",
+  letterSpacing:
+    ".12em",
 };
 
 /* ==========================================================
@@ -569,111 +824,157 @@ const menuSectionLabelStyle = {
 ========================================================== */
 
 const tvParentStyle = {
-  width: "100%",
+  width:
+    "100%",
 
-  minHeight: 47,
+  minHeight:
+    47,
 
-  padding: "0 15px",
+  padding:
+    "0 15px",
 
-  borderRadius: 7,
+  borderRadius:
+    7,
 
-  border: "none",
+  border:
+    "none",
 
-  display: "flex",
+  display:
+    "flex",
 
-  alignItems: "center",
+  alignItems:
+    "center",
 
-  gap: 13,
+  gap:
+    13,
 
-  background: "transparent",
+  background:
+    "transparent",
 
-  color: "#18243b",
+  color:
+    "#18243b",
 
-  fontSize: 13,
+  fontSize:
+    13,
 
-  fontWeight: 800,
+  fontWeight:
+    800,
 
-  fontFamily: "inherit",
+  fontFamily:
+    "inherit",
 
-  cursor: "pointer",
+  cursor:
+    "pointer",
 
-  textAlign: "left",
+  textAlign:
+    "left",
 };
 
 const chevronStyle = {
-  width: 18,
+  width:
+    18,
 
-  display: "grid",
+  display:
+    "grid",
 
-  placeItems: "center",
+  placeItems:
+    "center",
 
-  color: "#64748b",
+  color:
+    "#64748b",
 
-  fontSize: 15,
+  fontSize:
+    15,
 };
 
 const tvSubmenuStyle = {
-  position: "relative",
+  position:
+    "relative",
 
-  display: "flex",
+  display:
+    "flex",
 
-  flexDirection: "column",
+  flexDirection:
+    "column",
 
-  marginLeft: 27,
+  marginLeft:
+    27,
 
-  paddingLeft: 17,
+  paddingLeft:
+    17,
 
-  paddingTop: 2,
+  paddingTop:
+    2,
 
-  gap: 2,
+  gap:
+    2,
 
   borderLeft:
     "1px solid #e2e8f0",
 };
 
 const tvSubItemStyle = {
-  position: "relative",
+  position:
+    "relative",
 
-  width: "100%",
+  width:
+    "100%",
 
-  minHeight: 36,
+  minHeight:
+    36,
 
-  padding: "0 8px",
+  padding:
+    "0 8px",
 
-  display: "flex",
+  display:
+    "flex",
 
-  alignItems: "center",
+  alignItems:
+    "center",
 
-  gap: 10,
+  gap:
+    10,
 
-  border: "none",
+  border:
+    "none",
 
-  borderRadius: 6,
+  borderRadius:
+    6,
 
   background:
     "transparent",
 
-  color: "#334155",
+  color:
+    "#334155",
 
-  fontFamily: "inherit",
+  fontFamily:
+    "inherit",
 
-  fontSize: 11,
+  fontSize:
+    11,
 
-  fontWeight: 700,
+  fontWeight:
+    700,
 
-  textAlign: "left",
+  textAlign:
+    "left",
 
-  cursor: "pointer",
+  cursor:
+    "pointer",
 };
 
 const tvDotStyle = {
-  width: 7,
+  width:
+    7,
 
-  height: 7,
+  height:
+    7,
 
-  borderRadius: "50%",
+  borderRadius:
+    "50%",
 
-  flexShrink: 0,
+  flexShrink:
+    0,
 
   boxShadow:
     "0 0 0 3px rgba(255,255,255,1)",
@@ -684,7 +985,8 @@ const tvDotStyle = {
 ========================================================== */
 
 const sidebarBottomStyle = {
-  marginTop: "auto",
+  marginTop:
+    "auto",
 
   padding:
     "12px 16px 19px",
@@ -824,7 +1126,7 @@ const mobileNavStyle = {
     10,
 
   gridTemplateColumns:
-    "repeat(3,1fr)",
+    "repeat(4,1fr)",
 
   padding:
     7,
@@ -881,6 +1183,9 @@ const mobileNavItemStyle = {
 
   fontWeight:
     900,
+
+  textAlign:
+    "center",
 };
 
 const mobileIconStyle = {
